@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video upload</title>
+  <style>
+    body { font-family: sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    button { margin-top: 8px; }
+    .status { margin: 12px 0; }
+    a { word-break: break-all; }
+    li { margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>Upload video</h1>
+  <input id="file" type="file" accept="video/*">
+  <div>
+    <button id="upload">Upload</button>
+  </div>
+  <p id="status" class="status"></p>
+  <p id="open"></p>
+
+  <h2>Uploaded videos</h2>
+  <ul id="list"></ul>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const openEl = document.getElementById("open");
+    const listEl = document.getElementById("list");
+
+    async function loadVideos() {
+      const response = await fetch("/videos");
+      const payload = await response.json();
+      listEl.innerHTML = "";
+
+      (payload.data || []).forEach((file) => {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = file.openUrl;
+        link.target = "_blank";
+        link.textContent = file.key;
+        item.appendChild(link);
+        listEl.appendChild(item);
+      });
+    }
+
+    document.getElementById("upload").addEventListener("click", async () => {
+      const file = document.getElementById("file").files[0];
+      if (!file) {
+        statusEl.textContent = "Choose a video file first.";
+        return;
+      }
+
+      statusEl.textContent = "Getting upload URL...";
+      openEl.innerHTML = "";
+
+      const urlResponse = await fetch("/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || "video/mp4"
+        })
+      });
+      const payload = await urlResponse.json();
+
+      if (!payload.success) {
+        statusEl.textContent = payload.message || "Failed to get upload URL";
+        return;
+      }
+
+      statusEl.textContent = "Uploading...";
+      const putResponse = await fetch(payload.data.url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "video/mp4" },
+        body: file
+      });
+
+      if (!putResponse.ok) {
+        statusEl.textContent = "Upload failed: " + putResponse.status;
+        return;
+      }
+
+      statusEl.textContent = "Upload complete.";
+      openEl.innerHTML = `<a href="${payload.data.openUrl}" target="_blank">Open video</a>`;
+      await loadVideos();
+    });
+
+    loadVideos().catch((error) => {
+      statusEl.textContent = error.message;
+    });
+  </script>
+</body>
+</html>

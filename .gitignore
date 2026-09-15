@@ -3,6 +3,7 @@ uploads/
 temp/
 .env
 .env.*
+!.env.example
 .DS_Store
 *.mov
 *.mp4
