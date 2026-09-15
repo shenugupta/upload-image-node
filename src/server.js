@@ -7,6 +7,7 @@ const {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   CreateBucketCommand,
   PutBucketCorsCommand
@@ -103,6 +104,7 @@ app.post("/upload-url", async (req, res) => {
       data: {
         url,
         openUrl: openUrlFor(key),
+        getVideoUrl: `http://localhost:${PORT}/get-video?key=${encodeURIComponent(key)}`,
         key,
         bucket: BUCKET,
         expires: Math.floor(Date.now() / 1000) + EXPIRES_IN
@@ -112,6 +114,73 @@ app.post("/upload-url", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to generate presigned URL from LocalStack",
+      error: error.message || error.code || String(error)
+    });
+  }
+});
+
+app.get("/get-video", async (req, res) => {
+  try {
+    const { key } = req.query;
+
+    if (!key) {
+      return res.status(400).json({
+        success: false,
+        message: "key is required"
+      });
+    }
+
+    await ensureBucket();
+
+    let metadata;
+    try {
+      metadata = await s3.send(
+        new HeadObjectCommand({
+          Bucket: BUCKET,
+          Key: key
+        })
+      );
+    } catch (error) {
+      const notFound =
+        error.name === "NotFound" ||
+        error.name === "NoSuchKey" ||
+        error.$metadata?.httpStatusCode === 404;
+
+      if (notFound) {
+        return res.status(404).json({
+          success: false,
+          message: "Video not found"
+        });
+      }
+
+      throw error;
+    }
+
+    const url = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: key
+      }),
+      { expiresIn: EXPIRES_IN }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        url,
+        openUrl: openUrlFor(key),
+        key,
+        bucket: BUCKET,
+        contentType: metadata.ContentType,
+        contentLength: metadata.ContentLength,
+        expires: Math.floor(Date.now() / 1000) + EXPIRES_IN
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to get video from LocalStack",
       error: error.message || error.code || String(error)
     });
   }
@@ -132,7 +201,8 @@ app.get("/videos", async (req, res) => {
       key: item.Key,
       size: item.Size,
       lastModified: item.LastModified,
-      openUrl: openUrlFor(item.Key)
+      openUrl: openUrlFor(item.Key),
+      getVideoUrl: `http://localhost:${PORT}/get-video?key=${encodeURIComponent(item.Key)}`
     }));
 
     res.json({
