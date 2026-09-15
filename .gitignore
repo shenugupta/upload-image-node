@@ -1,5 +1,11 @@
 node_modules/
 uploads/
+temp/
 .env
 .env.*
 .DS_Store
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.webm

@@ -10,7 +10,7 @@ app.use(express.json());
 const PORT = 3001;
 const SECRET = "local-development-secret";
 
-const uploadDir = path.join(__dirname, "../uploads");
+const uploadDir = path.join(__dirname, "../temp");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
