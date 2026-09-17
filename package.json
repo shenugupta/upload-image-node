@@ -4,8 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "PROFILE=mock node src/server.js",
+    "start:mock": "PROFILE=mock node src/server.js",
+    "start:localstack": "PROFILE=localstack node src/server.js",
+    "dev": "PROFILE=mock nodemon src/server.js",
+    "dev:mock": "PROFILE=mock nodemon src/server.js",
+    "dev:localstack": "PROFILE=localstack nodemon src/server.js",
     "localstack": "docker compose up -d",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
