@@ -6,22 +6,21 @@ const { createApp } = require("./app");
 
 async function main() {
   const config = loadConfig();
-  const { storage } = createContainer(config);
+  const { storage, urls, directUpload } = createContainer(config);
 
   await storage.init();
 
-  const app = createApp({ storage, config });
+  const app = createApp({
+    storage,
+    urls,
+    directUpload,
+    config
+  });
 
   app.listen(config.port, () => {
     console.log(`Server running at http://localhost:${config.port}`);
-    console.log(`Profile: ${process.env.PROFILE}`);
-
-    if (process.env.PROFILE === "mock") {
-      console.log(`Mock upload directory: ${config.mock.uploadDir}`);
-    } else if (process.env.PROFILE === "localstack") {
-      console.log(`LocalStack S3 endpoint: ${config.localstack.endpoint}`);
-      console.log(`S3 bucket: ${config.localstack.bucket}`);
-    }
+    console.log(`Profile: ${storage.profile}`);
+    storage.describe().forEach((line) => console.log(line));
   });
 }
 

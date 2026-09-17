@@ -1,5 +1,4 @@
 const {
-  S3Client,
   PutObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -8,28 +7,30 @@ const {
   PutBucketCorsCommand
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { StoragePort } = require("../ports/StoragePort");
 const { NotFoundError } = require("../errors");
 
-function createLocalstackStorage(config) {
-  const { region, endpoint, bucket, accessKeyId, secretAccessKey } =
-    config.localstack;
-  const expiresIn = config.expiresIn;
+class LocalStackStorage extends StoragePort {
+  constructor({ s3, bucket, expiresIn, endpoint }) {
+    super();
+    this.profile = "localstack";
+    this.s3 = s3;
+    this.bucket = bucket;
+    this.expiresIn = expiresIn;
+    this.endpoint = endpoint;
+  }
 
-  const s3 = new S3Client({
-    region,
-    endpoint,
-    forcePathStyle: true,
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
-    credentials: {
-      accessKeyId,
-      secretAccessKey
-    }
-  });
+  isNotFound(error) {
+    return (
+      error.name === "NotFound" ||
+      error.name === "NoSuchKey" ||
+      error.$metadata?.httpStatusCode === 404
+    );
+  }
 
-  async function ensureBucket() {
+  async ensureBucket() {
     try {
-      await s3.send(new CreateBucketCommand({ Bucket: bucket }));
+      await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
     } catch (error) {
       const alreadyExists = [
         "BucketAlreadyOwnedByYou",
@@ -41,9 +42,9 @@ function createLocalstackStorage(config) {
       }
     }
 
-    await s3.send(
+    await this.s3.send(
       new PutBucketCorsCommand({
-        Bucket: bucket,
+        Bucket: this.bucket,
         CORSConfiguration: {
           CORSRules: [
             {
@@ -59,104 +60,93 @@ function createLocalstackStorage(config) {
     );
   }
 
-  function isNotFound(error) {
-    return (
-      error.name === "NotFound" ||
-      error.name === "NoSuchKey" ||
-      error.$metadata?.httpStatusCode === 404
-    );
+  async init() {
+    await this.ensureBucket();
   }
 
-  return {
-    profile: "localstack",
-    bucket,
-    supportsDirectUpload: false,
+  async createUploadUrl({ key, contentType }) {
+    await this.ensureBucket();
 
-    async init() {
-      await ensureBucket();
-    },
+    const url = await getSignedUrl(
+      this.s3,
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType
+      }),
+      { expiresIn: this.expiresIn }
+    );
 
-    async createUploadUrl({ key, contentType }) {
-      await ensureBucket();
+    return {
+      url,
+      key,
+      bucket: this.bucket,
+      expires: Math.floor(Date.now() / 1000) + this.expiresIn
+    };
+  }
 
-      const url = await getSignedUrl(
-        s3,
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          ContentType: contentType
-        }),
-        { expiresIn }
-      );
+  async getVideo({ key }) {
+    await this.ensureBucket();
 
-      return {
-        url,
-        key,
-        bucket,
-        expires: Math.floor(Date.now() / 1000) + expiresIn
-      };
-    },
-
-    async getVideo({ key }) {
-      await ensureBucket();
-
-      let metadata;
-      try {
-        metadata = await s3.send(
-          new HeadObjectCommand({
-            Bucket: bucket,
-            Key: key
-          })
-        );
-      } catch (error) {
-        if (isNotFound(error)) {
-          throw new NotFoundError();
-        }
-        throw error;
-      }
-
-      const url = await getSignedUrl(
-        s3,
-        new GetObjectCommand({
-          Bucket: bucket,
+    let metadata;
+    try {
+      metadata = await this.s3.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
           Key: key
-        }),
-        { expiresIn }
-      );
-
-      return {
-        url,
-        key,
-        bucket,
-        contentType: metadata.ContentType,
-        contentLength: metadata.ContentLength,
-        expires: Math.floor(Date.now() / 1000) + expiresIn
-      };
-    },
-
-    async listVideos() {
-      await ensureBucket();
-
-      const listed = await s3.send(
-        new ListObjectsV2Command({
-          Bucket: bucket,
-          Prefix: "uploads/"
         })
       );
-
-      return (listed.Contents || []).map((item) => ({
-        key: item.Key,
-        size: item.Size,
-        lastModified: item.LastModified
-      }));
-    },
-
-    async getDownloadUrl({ key }) {
-      return this.getVideo({ key });
+    } catch (error) {
+      if (this.isNotFound(error)) {
+        throw new NotFoundError();
+      }
+      throw error;
     }
-  };
+
+    const url = await getSignedUrl(
+      this.s3,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key
+      }),
+      { expiresIn: this.expiresIn }
+    );
+
+    return {
+      url,
+      key,
+      bucket: this.bucket,
+      contentType: metadata.ContentType,
+      contentLength: metadata.ContentLength,
+      expires: Math.floor(Date.now() / 1000) + this.expiresIn
+    };
+  }
+
+  async listVideos() {
+    await this.ensureBucket();
+
+    const listed = await this.s3.send(
+      new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: "uploads/"
+      })
+    );
+
+    return (listed.Contents || []).map((item) => ({
+      key: item.Key,
+      size: item.Size,
+      lastModified: item.LastModified
+    }));
+  }
+
+  describe() {
+    return [
+      `LocalStack S3 endpoint: ${this.endpoint}`,
+      `S3 bucket: ${this.bucket}`
+    ];
+  }
 }
 
 module.exports = {
-  createLocalstackStorage
+  LocalStackStorage
 };

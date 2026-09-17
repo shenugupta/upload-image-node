@@ -1,7 +1,8 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const { NotFoundError } = require("../errors");
+const { StoragePort } = require("../ports/StoragePort");
+const { HttpError, NotFoundError } = require("../errors");
 
 function contentTypeFromName(fileName) {
   const ext = path.extname(fileName).toLowerCase();
@@ -15,152 +16,147 @@ function contentTypeFromName(fileName) {
   return "application/octet-stream";
 }
 
-function createMockStorage(config) {
-  const { secret, uploadDir, bucket } = config.mock;
-  const expiresIn = config.expiresIn;
-
-  function sign(value) {
-    return crypto.createHmac("sha256", secret).update(value).digest("hex");
+class MockStorage extends StoragePort {
+  constructor({ secret, uploadDir, bucket, expiresIn, publicBaseUrl }) {
+    super();
+    this.profile = "mock";
+    this.secret = secret;
+    this.uploadDir = uploadDir;
+    this.bucket = bucket;
+    this.expiresIn = expiresIn;
+    this.publicBaseUrl = publicBaseUrl;
   }
 
-  function filePathFor(key) {
-    return path.join(uploadDir, path.basename(key));
+  sign(value) {
+    return crypto.createHmac("sha256", this.secret).update(value).digest("hex");
   }
 
-  function signedUrl(key, contentType, expires, method) {
-    const signature = sign(`${method}:${key}:${contentType}:${expires}`);
+  filePathFor(key) {
+    return path.join(this.uploadDir, path.basename(key));
+  }
+
+  signedUrl(key, contentType, expires, method) {
+    const signature = this.sign(`${method}:${key}:${contentType}:${expires}`);
 
     return (
-      `${config.publicBaseUrl}/mock-s3/${encodeURIComponent(key)}` +
+      `${this.publicBaseUrl}/mock-s3/${encodeURIComponent(key)}` +
       `?expires=${expires}&signature=${signature}&method=${method}` +
       `&contentType=${encodeURIComponent(contentType)}`
     );
   }
 
-  function verifySignature({ key, contentType, expires, signature, method }) {
+  verifySignature({ key, contentType, expires, signature, method }) {
     if (!expires || !signature || !method) {
-      const error = new Error("Invalid URL");
-      error.status = 400;
-      throw error;
+      throw new HttpError(400, "Invalid URL");
     }
 
     if (Math.floor(Date.now() / 1000) > Number(expires)) {
-      const error = new Error("URL expired");
-      error.status = 403;
-      throw error;
+      throw new HttpError(403, "URL expired");
     }
 
-    const expected = sign(`${method}:${key}:${contentType}:${expires}`);
+    const expected = this.sign(`${method}:${key}:${contentType}:${expires}`);
 
     if (signature !== expected) {
-      const error = new Error("Invalid signature");
-      error.status = 403;
-      throw error;
+      throw new HttpError(403, "Invalid signature");
     }
   }
 
-  return {
-    profile: "mock",
-    bucket,
-    supportsDirectUpload: true,
-
-    async init() {
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-    },
-
-    async createUploadUrl({ key, contentType }) {
-      const expires = Math.floor(Date.now() / 1000) + expiresIn;
-
-      return {
-        url: signedUrl(key, contentType, expires, "PUT"),
-        key,
-        bucket,
-        expires
-      };
-    },
-
-    async putObject({ key, contentType, body, expires, signature, method }) {
-      verifySignature({
-        key,
-        contentType,
-        expires,
-        signature,
-        method: method || "PUT"
-      });
-
-      fs.writeFileSync(filePathFor(key), body);
-    },
-
-    async getVideo({ key }) {
-      const filePath = filePathFor(key);
-
-      if (!fs.existsSync(filePath)) {
-        throw new NotFoundError();
-      }
-
-      const stats = fs.statSync(filePath);
-      const contentType = contentTypeFromName(key);
-      const expires = Math.floor(Date.now() / 1000) + expiresIn;
-
-      return {
-        url: signedUrl(key, contentType, expires, "GET"),
-        key,
-        bucket,
-        contentType,
-        contentLength: stats.size,
-        expires
-      };
-    },
-
-    async listVideos() {
-      await this.init();
-
-      return fs
-        .readdirSync(uploadDir)
-        .filter((name) => !name.startsWith("."))
-        .map((name) => {
-          const stats = fs.statSync(path.join(uploadDir, name));
-
-          return {
-            key: `uploads/${name}`,
-            size: stats.size,
-            lastModified: stats.mtime
-          };
-        });
-    },
-
-    async getDownloadUrl({ key }) {
-      return this.getVideo({ key });
-    },
-
-    async readObject({ key, expires, signature, method, contentType }) {
-      const filePath = filePathFor(key);
-
-      if (!fs.existsSync(filePath)) {
-        throw new NotFoundError();
-      }
-
-      const resolvedType = contentType || contentTypeFromName(key);
-
-      verifySignature({
-        key,
-        contentType: resolvedType,
-        expires,
-        signature,
-        method: method || "GET"
-      });
-
-      return {
-        body: fs.readFileSync(filePath),
-        contentType: resolvedType,
-        contentLength: fs.statSync(filePath).size
-      };
+  async init() {
+    if (!fs.existsSync(this.uploadDir)) {
+      fs.mkdirSync(this.uploadDir, { recursive: true });
     }
-  };
+  }
+
+  async createUploadUrl({ key, contentType }) {
+    const expires = Math.floor(Date.now() / 1000) + this.expiresIn;
+
+    return {
+      url: this.signedUrl(key, contentType, expires, "PUT"),
+      key,
+      bucket: this.bucket,
+      expires
+    };
+  }
+
+  async putObject({ key, contentType, body, expires, signature, method }) {
+    this.verifySignature({
+      key,
+      contentType,
+      expires,
+      signature,
+      method: method || "PUT"
+    });
+
+    fs.writeFileSync(this.filePathFor(key), body);
+  }
+
+  async getVideo({ key }) {
+    const filePath = this.filePathFor(key);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundError();
+    }
+
+    const stats = fs.statSync(filePath);
+    const contentType = contentTypeFromName(key);
+    const expires = Math.floor(Date.now() / 1000) + this.expiresIn;
+
+    return {
+      url: this.signedUrl(key, contentType, expires, "GET"),
+      key,
+      bucket: this.bucket,
+      contentType,
+      contentLength: stats.size,
+      expires
+    };
+  }
+
+  async listVideos() {
+    await this.init();
+
+    return fs
+      .readdirSync(this.uploadDir)
+      .filter((name) => !name.startsWith("."))
+      .map((name) => {
+        const stats = fs.statSync(path.join(this.uploadDir, name));
+
+        return {
+          key: `uploads/${name}`,
+          size: stats.size,
+          lastModified: stats.mtime
+        };
+      });
+  }
+
+  async readObject({ key, expires, signature, method, contentType }) {
+    const filePath = this.filePathFor(key);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundError();
+    }
+
+    const resolvedType = contentType || contentTypeFromName(key);
+
+    this.verifySignature({
+      key,
+      contentType: resolvedType,
+      expires,
+      signature,
+      method: method || "GET"
+    });
+
+    return {
+      body: fs.readFileSync(filePath),
+      contentType: resolvedType,
+      contentLength: fs.statSync(filePath).size
+    };
+  }
+
+  describe() {
+    return [`Mock upload directory: ${this.uploadDir}`];
+  }
 }
 
 module.exports = {
-  createMockStorage
+  MockStorage
 };
