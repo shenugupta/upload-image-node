@@ -23,10 +23,15 @@ function loadConfig(env = process.env) {
     },
     localstack: {
       region: env.AWS_REGION || "us-east-1",
-      endpoint: env.S3_ENDPOINT || "http://localhost:4566",
+      endpoint:
+        env.S3_ENDPOINT ||
+        (env.LOCALSTACK_HOSTNAME
+          ? `http://${env.LOCALSTACK_HOSTNAME}:4566`
+          : "http://localhost:4566"),
       bucket: env.S3_BUCKET || "local-uploads",
       accessKeyId: env.AWS_ACCESS_KEY_ID || "test",
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "test"
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "test",
+      publicEndpoint: env.S3_PUBLIC_ENDPOINT || "http://localhost:4566"
     }
   };
 }

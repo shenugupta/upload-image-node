@@ -6,7 +6,8 @@ const { createApp } = require("./app");
 
 async function main() {
   const config = loadConfig();
-  const { storage, urls, directUpload } = createContainer(config);
+  const { storage, urls, directUpload, stepFunctions, lambdaInvoker } =
+    await createContainer(config);
 
   await storage.init();
 
@@ -14,12 +15,19 @@ async function main() {
     storage,
     urls,
     directUpload,
+    stepFunctions,
+    lambdaInvoker,
     config
   });
 
   app.listen(config.port, () => {
     console.log(`Server running at http://localhost:${config.port}`);
     console.log(`Profile: ${storage.profile}`);
+    console.log(
+      storage.profile === "mock"
+        ? "Lambda: local AWS handler invoke (generateUploadUrl, listVideos, getVideo)"
+        : "Lambda: LocalStack AWS Lambda invoke (generateUploadUrl, listVideos, getVideo)"
+    );
     storage.describe().forEach((line) => console.log(line));
   });
 }

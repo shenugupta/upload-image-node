@@ -1,42 +1,53 @@
-const { MockStorage } = require("./storage/MockStorage");
-const { LocalStackStorage } = require("./storage/LocalStackStorage");
-const { createS3Client } = require("./infrastructure/createS3Client");
-const { createUrlBuilder } = require("./http/urlBuilder");
+const { createStorageDependencies } = require("./createStorage");
+const { MockLambdaInvoker } = require("./lambda/MockLambdaInvoker");
+const { LocalStackLambdaInvoker } = require("./lambda/LocalStackLambdaInvoker");
+const { createLambdaClient } = require("./infrastructure/createLambdaClient");
+const { ensureLocalStackLambdas } = require("./lambda/deployLocalStackLambdas");
+const { StepFunctionsRunner } = require("./stepfunctions/StepFunctionsRunner");
 
-function createMockDependencies(config) {
-  const storage = new MockStorage({
-    ...config.mock,
-    expiresIn: config.expiresIn,
-    publicBaseUrl: config.publicBaseUrl
+function withWorkflow(deps, lambdaInvoker) {
+  const stepFunctions = new StepFunctionsRunner({
+    lambdaInvoker,
+    profile: deps.storage.profile
   });
 
   return {
-    storage,
-    directUpload: storage
+    ...deps,
+    lambdaInvoker,
+    stepFunctions
   };
 }
 
-function createLocalstackDependencies(config) {
-  const storage = new LocalStackStorage({
-    s3: createS3Client(config.localstack),
-    bucket: config.localstack.bucket,
-    expiresIn: config.expiresIn,
-    endpoint: config.localstack.endpoint
+async function createMockDependencies(config) {
+  const deps = createStorageDependencies(config);
+  const lambdaInvoker = new MockLambdaInvoker({
+    profile: deps.storage.profile
   });
 
-  return {
-    storage,
-    directUpload: null
-  };
+  return withWorkflow(deps, lambdaInvoker);
 }
 
-function createContainer(config) {
+async function createLocalstackDependencies(config) {
+  const deps = createStorageDependencies(config);
+  const lambda = createLambdaClient(config.localstack);
+
+  await ensureLocalStackLambdas({ lambda, config });
+
+  const lambdaInvoker = new LocalStackLambdaInvoker({
+    lambda,
+    profile: deps.storage.profile
+  });
+
+  return withWorkflow(deps, lambdaInvoker);
+}
+
+async function createContainer(config) {
   let dependencies;
 
   if (process.env.PROFILE === "mock") {
-    dependencies = createMockDependencies(config);
+    dependencies = await createMockDependencies(config);
   } else if (process.env.PROFILE === "localstack") {
-    dependencies = createLocalstackDependencies(config);
+    dependencies = await createLocalstackDependencies(config);
   } else {
     throw new Error(
       `Unknown PROFILE "${process.env.PROFILE || ""}". Use npm run start:mock or npm run start:localstack`
@@ -45,7 +56,6 @@ function createContainer(config) {
 
   return {
     config,
-    urls: createUrlBuilder(config.publicBaseUrl),
     ...dependencies
   };
 }

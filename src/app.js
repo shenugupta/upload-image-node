@@ -2,26 +2,48 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const { StoragePort } = require("./ports/StoragePort");
-const { NotFoundError } = require("./errors");
+const { HttpError, NotFoundError } = require("./errors");
+const { LAMBDA_FUNCTIONS } = require("./lambda/functionNames");
 
 function errorMessage(error) {
   return error.message || error.code || String(error);
 }
 
+function fromLambdaError(error) {
+  if (error instanceof HttpError) {
+    return error;
+  }
+
+  if (error.message === "Video not found") {
+    return new NotFoundError();
+  }
+
+  if (
+    error.message === "fileName and contentType are required" ||
+    error.message === "key is required"
+  ) {
+    return new HttpError(400, error.message);
+  }
+
+  return error;
+}
+
 function sendError(res, storage, error, fallbackMessage) {
-  if (error instanceof NotFoundError) {
+  const mapped = fromLambdaError(error);
+
+  if (mapped instanceof NotFoundError) {
     return res.status(404).json({
       success: false,
       profile: storage.profile,
-      message: error.message
+      message: mapped.message
     });
   }
 
-  return res.status(error.status || 500).json({
+  return res.status(mapped.status || 500).json({
     success: false,
     profile: storage.profile,
-    message: error.message || fallbackMessage,
-    error: errorMessage(error)
+    message: mapped.message || fallbackMessage,
+    error: errorMessage(mapped)
   });
 }
 
@@ -77,9 +99,20 @@ function mountDirectUploadRoutes(app, storage, directUpload) {
   });
 }
 
-function createApp({ storage, urls, directUpload = null, config }) {
+function createApp({
+  storage,
+  urls,
+  directUpload = null,
+  stepFunctions,
+  lambdaInvoker,
+  config
+}) {
   if (!(storage instanceof StoragePort)) {
     throw new Error("createApp requires a StoragePort instance");
+  }
+
+  if (!lambdaInvoker) {
+    throw new Error("createApp requires a lambdaInvoker");
   }
 
   const app = express();
@@ -93,7 +126,11 @@ function createApp({ storage, urls, directUpload = null, config }) {
       success: true,
       profile: storage.profile,
       port: config.port,
-      bucket: storage.bucket
+      bucket: storage.bucket,
+      lambda:
+        storage.profile === "mock"
+          ? "aws-lambda-handler"
+          : "localstack-lambda"
     });
   });
 
@@ -108,17 +145,15 @@ function createApp({ storage, urls, directUpload = null, config }) {
         });
       }
 
-      const key = `uploads/${Date.now()}-${fileName}`;
-      const data = await storage.createUploadUrl({ key, contentType });
+      const data = await lambdaInvoker.invoke(
+        LAMBDA_FUNCTIONS.generateUploadUrl,
+        { fileName, contentType }
+      );
 
       res.json({
         success: true,
         profile: storage.profile,
-        data: {
-          ...data,
-          openUrl: urls.openUrl(key),
-          getVideoUrl: urls.getVideoUrl(key)
-        }
+        data
       });
     } catch (error) {
       sendError(res, storage, error, "Failed to generate upload URL");
@@ -136,15 +171,14 @@ function createApp({ storage, urls, directUpload = null, config }) {
         });
       }
 
-      const data = await storage.getVideo({ key });
+      const data = await lambdaInvoker.invoke(LAMBDA_FUNCTIONS.getVideo, {
+        key
+      });
 
       res.json({
         success: true,
         profile: storage.profile,
-        data: {
-          ...data,
-          openUrl: urls.openUrl(key)
-        }
+        data
       });
     } catch (error) {
       sendError(res, storage, error, "Failed to get video");
@@ -153,16 +187,12 @@ function createApp({ storage, urls, directUpload = null, config }) {
 
   app.get("/videos", async (req, res) => {
     try {
-      const files = await storage.listVideos();
+      const files = await lambdaInvoker.invoke(LAMBDA_FUNCTIONS.listVideos, {});
 
       res.json({
         success: true,
         profile: storage.profile,
-        data: files.map((item) => ({
-          ...item,
-          openUrl: urls.openUrl(item.key),
-          getVideoUrl: urls.getVideoUrl(item.key)
-        }))
+        data: files
       });
     } catch (error) {
       sendError(res, storage, error, "Failed to list videos");
@@ -180,10 +210,38 @@ function createApp({ storage, urls, directUpload = null, config }) {
         });
       }
 
-      const data = await storage.getDownloadUrl({ key });
+      const data = await lambdaInvoker.invoke(LAMBDA_FUNCTIONS.getVideo, {
+        key
+      });
       res.redirect(data.url);
     } catch (error) {
       sendError(res, storage, error, "Failed to open video");
+    }
+  });
+
+  app.post("/workflow", async (req, res) => {
+    try {
+      const { fileName, contentType } = req.body;
+
+      if (!fileName || !contentType) {
+        return res.status(400).json({
+          success: false,
+          message: "fileName and contentType are required"
+        });
+      }
+
+      const result = await stepFunctions.startExecution({
+        fileName,
+        contentType
+      });
+
+      res.json({
+        success: true,
+        profile: storage.profile,
+        data: result
+      });
+    } catch (error) {
+      sendError(res, storage, error, "Failed to start workflow");
     }
   });
 

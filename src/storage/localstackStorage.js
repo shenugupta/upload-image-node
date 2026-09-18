@@ -11,13 +11,22 @@ const { StoragePort } = require("../ports/StoragePort");
 const { NotFoundError } = require("../errors");
 
 class LocalStackStorage extends StoragePort {
-  constructor({ s3, bucket, expiresIn, endpoint }) {
+  constructor({ s3, bucket, expiresIn, endpoint, publicEndpoint }) {
     super();
     this.profile = "localstack";
     this.s3 = s3;
     this.bucket = bucket;
     this.expiresIn = expiresIn;
     this.endpoint = endpoint;
+    this.publicEndpoint = publicEndpoint || "http://localhost:4566";
+  }
+
+  toPublicUrl(url) {
+    const signed = new URL(url);
+    const pub = new URL(this.publicEndpoint);
+    signed.protocol = pub.protocol;
+    signed.host = pub.host;
+    return signed.toString();
   }
 
   isNotFound(error) {
@@ -78,7 +87,7 @@ class LocalStackStorage extends StoragePort {
     );
 
     return {
-      url,
+      url: this.toPublicUrl(url),
       key,
       bucket: this.bucket,
       expires: Math.floor(Date.now() / 1000) + this.expiresIn
@@ -113,7 +122,7 @@ class LocalStackStorage extends StoragePort {
     );
 
     return {
-      url,
+      url: this.toPublicUrl(url),
       key,
       bucket: this.bucket,
       contentType: metadata.ContentType,

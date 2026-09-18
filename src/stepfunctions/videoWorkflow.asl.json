@@ -1,0 +1,31 @@
+{
+  "Comment": "Video upload workflow for mock and LocalStack profiles",
+  "StartAt": "GenerateUploadUrl",
+  "States": {
+    "GenerateUploadUrl": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:000000000000:function:generateUploadUrl",
+      "Next": "ListVideos"
+    },
+    "ListVideos": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:000000000000:function:listVideos",
+      "Next": "GetVideo"
+    },
+    "GetVideo": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:000000000000:function:getVideo",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.getVideoError",
+          "Next": "Complete"
+        }
+      ],
+      "Next": "Complete"
+    },
+    "Complete": {
+      "Type": "Succeed"
+    }
+  }
+}
