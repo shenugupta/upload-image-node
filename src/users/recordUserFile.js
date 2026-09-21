@@ -5,7 +5,7 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
-async function recordUserFile(users, { userId, email, fileName, contentType }) {
+async function recordUserFile(users, { userId, email, fileName, contentType, fileurl }) {
   let user = null;
 
   if (userId != null && userId !== "") {
@@ -26,11 +26,16 @@ async function recordUserFile(users, { userId, email, fileName, contentType }) {
     throw new NotFoundError("User not found");
   }
 
+  if (!fileurl) {
+    throw new HttpError(400, "fileurl is required");
+  }
+
   const filetype = fileTypeFromUpload({ fileName, contentType });
 
   return users.createFile({
     filename: fileName,
     filetype,
+    fileurl,
     userid: user.id
   });
 }

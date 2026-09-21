@@ -153,17 +153,18 @@ function createApp({
         });
       }
 
-      const file = await recordUserFile(users, {
-        userId,
-        email,
-        fileName,
-        contentType
-      });
-
       const data = await lambdaInvoker.invoke(
         LAMBDA_FUNCTIONS.generateUploadUrl,
         { fileName, contentType }
       );
+
+      const file = await recordUserFile(users, {
+        userId,
+        email,
+        fileName,
+        contentType,
+        fileurl: data.openUrl
+      });
 
       res.json({
         success: true,

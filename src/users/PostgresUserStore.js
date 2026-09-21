@@ -30,8 +30,19 @@ class PostgresUserStore {
         id SERIAL PRIMARY KEY,
         filetype TEXT NOT NULL CHECK (filetype IN ('png', 'jpeg', 'video', 'mov')),
         filename TEXT NOT NULL,
+        fileurl TEXT NOT NULL,
+        is_verified BOOLEAN NOT NULL DEFAULT false,
         userid INTEGER NOT NULL REFERENCES "userProfile"(id) ON DELETE CASCADE
       )
+    `);
+
+    await this.pool.query(`
+      ALTER TABLE "userFiles" ADD COLUMN IF NOT EXISTS fileurl TEXT
+    `);
+
+    await this.pool.query(`
+      ALTER TABLE "userFiles"
+      ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT false
     `);
 
     await this.pool.query(`
@@ -57,13 +68,13 @@ class PostgresUserStore {
     return result.rows[0] || null;
   }
 
-  async createFile({ filename, filetype, userid }) {
+  async createFile({ filename, filetype, fileurl, userid }) {
     try {
       const result = await this.pool.query(
-        `INSERT INTO "userFiles" (filetype, filename, userid)
-         VALUES ($1, $2, $3)
-         RETURNING id, filetype, filename, userid`,
-        [filetype, filename, userid]
+        `INSERT INTO "userFiles" (filetype, filename, fileurl, userid)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, filetype, filename, fileurl, is_verified, userid`,
+        [filetype, filename, fileurl, userid]
       );
 
       return result.rows[0];

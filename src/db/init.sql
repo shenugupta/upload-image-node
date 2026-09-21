@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS "userFiles" (
   id SERIAL PRIMARY KEY,
   filetype TEXT NOT NULL CHECK (filetype IN ('png', 'jpeg', 'video', 'mov')),
   filename TEXT NOT NULL,
+  fileurl TEXT NOT NULL,
+  is_verified BOOLEAN NOT NULL DEFAULT false,
   userid INTEGER NOT NULL REFERENCES "userProfile"(id) ON DELETE CASCADE
 );
 
