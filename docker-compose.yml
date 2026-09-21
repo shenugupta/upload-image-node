@@ -13,5 +13,24 @@ services:
       - localstack-data:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
 
+  postgres:
+    image: postgres:16
+    container_name: upload-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: upload_app
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./src/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d upload_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   localstack-data:
+  postgres-data:

@@ -4,6 +4,8 @@ const { LocalStackLambdaInvoker } = require("./lambda/LocalStackLambdaInvoker");
 const { createLambdaClient } = require("./infrastructure/createLambdaClient");
 const { ensureLocalStackLambdas } = require("./lambda/deployLocalStackLambdas");
 const { StepFunctionsRunner } = require("./stepfunctions/StepFunctionsRunner");
+const { createPostgresPool } = require("./infrastructure/createPostgresPool");
+const { PostgresUserStore } = require("./users/PostgresUserStore");
 
 function withWorkflow(deps, lambdaInvoker) {
   const stepFunctions = new StepFunctionsRunner({
@@ -54,8 +56,13 @@ async function createContainer(config) {
     );
   }
 
+  const users = new PostgresUserStore({
+    pool: createPostgresPool(config)
+  });
+
   return {
     config,
+    users,
     ...dependencies
   };
 }

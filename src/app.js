@@ -4,6 +4,8 @@ const path = require("path");
 const { StoragePort } = require("./ports/StoragePort");
 const { HttpError, NotFoundError } = require("./errors");
 const { LAMBDA_FUNCTIONS } = require("./lambda/functionNames");
+const { signIn } = require("./users/signIn");
+const { signUp } = require("./users/signUp");
 
 function errorMessage(error) {
   return error.message || error.code || String(error);
@@ -105,6 +107,7 @@ function createApp({
   directUpload = null,
   stepFunctions,
   lambdaInvoker,
+  users,
   config
 }) {
   if (!(storage instanceof StoragePort)) {
@@ -113,6 +116,10 @@ function createApp({
 
   if (!lambdaInvoker) {
     throw new Error("createApp requires a lambdaInvoker");
+  }
+
+  if (!users) {
+    throw new Error("createApp requires a users store");
   }
 
   const app = express();
@@ -216,6 +223,32 @@ function createApp({
       res.redirect(data.url);
     } catch (error) {
       sendError(res, storage, error, "Failed to open video");
+    }
+  });
+
+  app.post("/signup", async (req, res) => {
+    try {
+      const data = await signUp(users, req.body || {});
+
+      res.status(201).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      sendError(res, storage, error, "Failed to sign up");
+    }
+  });
+
+  app.post("/signin", async (req, res) => {
+    try {
+      const data = await signIn(users, req.body || {});
+
+      res.json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      sendError(res, storage, error, "Failed to sign in");
     }
   });
 

@@ -6,10 +6,11 @@ const { createApp } = require("./app");
 
 async function main() {
   const config = loadConfig();
-  const { storage, urls, directUpload, stepFunctions, lambdaInvoker } =
+  const { storage, urls, directUpload, stepFunctions, lambdaInvoker, users } =
     await createContainer(config);
 
   await storage.init();
+  await users.init();
 
   const app = createApp({
     storage,
@@ -17,6 +18,7 @@ async function main() {
     directUpload,
     stepFunctions,
     lambdaInvoker,
+    users,
     config
   });
 
@@ -29,6 +31,9 @@ async function main() {
         : "Lambda: LocalStack AWS Lambda invoke (generateUploadUrl, listVideos, getVideo)"
     );
     storage.describe().forEach((line) => console.log(line));
+    console.log(
+      `Postgres: ${config.postgres.host}:${config.postgres.port}/${config.postgres.database}`
+    );
   });
 }
 
@@ -37,6 +42,7 @@ main().catch((error) => {
 
   if (String(error.message || error).includes("ECONNREFUSED")) {
     console.error("Start LocalStack with: npm run localstack");
+    console.error("Start Postgres with: npm run postgres");
   }
 
   process.exit(1);
