@@ -6,6 +6,7 @@ const { HttpError, NotFoundError } = require("./errors");
 const { LAMBDA_FUNCTIONS } = require("./lambda/functionNames");
 const { signIn } = require("./users/signIn");
 const { signUp } = require("./users/signUp");
+const { recordUserFile } = require("./users/recordUserFile");
 
 function errorMessage(error) {
   return error.message || error.code || String(error);
@@ -143,7 +144,7 @@ function createApp({
 
   app.post("/upload-url", async (req, res) => {
     try {
-      const { fileName, contentType } = req.body;
+      const { fileName, contentType, userId, email } = req.body || {};
 
       if (!fileName || !contentType) {
         return res.status(400).json({
@@ -151,6 +152,13 @@ function createApp({
           message: "fileName and contentType are required"
         });
       }
+
+      const file = await recordUserFile(users, {
+        userId,
+        email,
+        fileName,
+        contentType
+      });
 
       const data = await lambdaInvoker.invoke(
         LAMBDA_FUNCTIONS.generateUploadUrl,
@@ -160,7 +168,10 @@ function createApp({
       res.json({
         success: true,
         profile: storage.profile,
-        data
+        data: {
+          ...data,
+          file
+        }
       });
     } catch (error) {
       sendError(res, storage, error, "Failed to generate upload URL");

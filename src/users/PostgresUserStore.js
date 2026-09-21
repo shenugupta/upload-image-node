@@ -1,4 +1,4 @@
-const { HttpError } = require("../errors");
+const { HttpError, NotFoundError } = require("../errors");
 
 class PostgresUserStore {
   constructor({ pool }) {
@@ -46,6 +46,38 @@ class PostgresUserStore {
     );
 
     return result.rows[0] || null;
+  }
+
+  async findById(id) {
+    const result = await this.pool.query(
+      'SELECT id, name, email, phone FROM "userProfile" WHERE id = $1',
+      [id]
+    );
+
+    return result.rows[0] || null;
+  }
+
+  async createFile({ filename, filetype, userid }) {
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO "userFiles" (filetype, filename, userid)
+         VALUES ($1, $2, $3)
+         RETURNING id, filetype, filename, userid`,
+        [filetype, filename, userid]
+      );
+
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === "23503") {
+        throw new NotFoundError("User not found");
+      }
+
+      if (error.code === "23514") {
+        throw new HttpError(400, "filetype must be png, jpeg, video, or mov");
+      }
+
+      throw error;
+    }
   }
 
   async create({ name, email, phone }) {
