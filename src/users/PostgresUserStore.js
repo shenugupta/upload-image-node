@@ -24,6 +24,19 @@ class PostgresUserStore {
         phone TEXT
       )
     `);
+
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS "userFiles" (
+        id SERIAL PRIMARY KEY,
+        filetype TEXT NOT NULL CHECK (filetype IN ('png', 'jpeg', 'video', 'mov')),
+        filename TEXT NOT NULL,
+        userid INTEGER NOT NULL REFERENCES "userProfile"(id) ON DELETE CASCADE
+      )
+    `);
+
+    await this.pool.query(`
+      CREATE INDEX IF NOT EXISTS "userFiles_userid_idx" ON "userFiles" (userid)
+    `);
   }
 
   async findByEmail(email) {
