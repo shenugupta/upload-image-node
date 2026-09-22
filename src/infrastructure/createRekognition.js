@@ -9,11 +9,7 @@ function createRekognition(config) {
 
   if (config.profile === "aws") {
     return new AwsRekognition({
-      client: createRekognitionClient({
-        region: config.aws.region,
-        accessKeyId: config.aws.accessKeyId,
-        secretAccessKey: config.aws.secretAccessKey
-      }),
+      client: createRekognitionClient(config.aws),
       localStack: false
     });
   }

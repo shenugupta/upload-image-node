@@ -6,16 +6,43 @@ const { createUrlBuilder } = require("./http/urlBuilder");
 function createStorageDependencies(config) {
   const urls = createUrlBuilder(config.publicBaseUrl);
 
-  if (process.env.PROFILE === "mock" || process.env.PROFILE === "aws") {
+  if (process.env.PROFILE === "aws") {
+    if (config.aws.bucket) {
+      const storage = new LocalStackStorage({
+        s3: createS3Client(config.aws),
+        bucket: config.aws.bucket,
+        expiresIn: config.expiresIn,
+        profile: "aws",
+        manageBucket: false
+      });
+
+      return {
+        storage,
+        urls,
+        directUpload: null
+      };
+    }
+
     const storage = new MockStorage({
       ...config.mock,
       expiresIn: config.expiresIn,
       publicBaseUrl: config.publicBaseUrl
     });
+    storage.profile = "aws";
 
-    if (process.env.PROFILE === "aws") {
-      storage.profile = "aws";
-    }
+    return {
+      storage,
+      urls,
+      directUpload: storage
+    };
+  }
+
+  if (process.env.PROFILE === "mock") {
+    const storage = new MockStorage({
+      ...config.mock,
+      expiresIn: config.expiresIn,
+      publicBaseUrl: config.publicBaseUrl
+    });
 
     return {
       storage,

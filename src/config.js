@@ -1,5 +1,29 @@
 const path = require("path");
 
+function isPlaceholderSecret(value) {
+  const trimmed = String(value || "").trim();
+  return !trimmed || trimmed === "test";
+}
+
+function loadAwsCredentials(env) {
+  if (
+    isPlaceholderSecret(env.AWS_ACCESS_KEY_ID) ||
+    isPlaceholderSecret(env.AWS_SECRET_ACCESS_KEY)
+  ) {
+    return {
+      accessKeyId: undefined,
+      secretAccessKey: undefined,
+      sessionToken: undefined
+    };
+  }
+
+  return {
+    accessKeyId: env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+    sessionToken: env.AWS_SESSION_TOKEN
+  };
+}
+
 function loadConfig(env = process.env) {
   const profile = env.PROFILE;
 
@@ -10,6 +34,7 @@ function loadConfig(env = process.env) {
   }
 
   const port = Number(env.PORT) || 3001;
+  const awsCredentials = loadAwsCredentials(env);
 
   return {
     profile,
@@ -35,8 +60,8 @@ function loadConfig(env = process.env) {
     },
     aws: {
       region: env.AWS_REGION || "us-east-1",
-      accessKeyId: env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY
+      bucket: env.AWS_S3_BUCKET,
+      ...awsCredentials
     },
     postgres: {
       host: env.PGHOST || "localhost",

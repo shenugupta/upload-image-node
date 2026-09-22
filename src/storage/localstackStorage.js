@@ -2,6 +2,7 @@ const {
   PutObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  HeadBucketCommand,
   ListObjectsV2Command,
   CreateBucketCommand,
   PutBucketCorsCommand
@@ -11,17 +12,30 @@ const { StoragePort } = require("../ports/StoragePort");
 const { NotFoundError } = require("../errors");
 
 class LocalStackStorage extends StoragePort {
-  constructor({ s3, bucket, expiresIn, endpoint, publicEndpoint }) {
+  constructor({
+    s3,
+    bucket,
+    expiresIn,
+    endpoint,
+    publicEndpoint,
+    profile = "localstack",
+    manageBucket = true
+  }) {
     super();
-    this.profile = "localstack";
+    this.profile = profile;
     this.s3 = s3;
     this.bucket = bucket;
     this.expiresIn = expiresIn;
     this.endpoint = endpoint;
-    this.publicEndpoint = publicEndpoint || "http://localhost:4566";
+    this.publicEndpoint = publicEndpoint;
+    this.manageBucket = manageBucket;
   }
 
   toPublicUrl(url) {
+    if (!this.publicEndpoint) {
+      return url;
+    }
+
     const signed = new URL(url);
     const pub = new URL(this.publicEndpoint);
     signed.protocol = pub.protocol;
@@ -69,12 +83,31 @@ class LocalStackStorage extends StoragePort {
     );
   }
 
+  async assertBucket() {
+    try {
+      await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
+    } catch (error) {
+      throw new Error(
+        `AWS S3 bucket "${this.bucket}" is missing or not accessible: ${error.message}`
+      );
+    }
+  }
+
+  async ready() {
+    if (this.manageBucket) {
+      await this.ensureBucket();
+      return;
+    }
+
+    await this.assertBucket();
+  }
+
   async init() {
-    await this.ensureBucket();
+    await this.ready();
   }
 
   async createUploadUrl({ key, contentType }) {
-    await this.ensureBucket();
+    await this.ready();
 
     const url = await getSignedUrl(
       this.s3,
@@ -95,7 +128,7 @@ class LocalStackStorage extends StoragePort {
   }
 
   async getVideo({ key }) {
-    await this.ensureBucket();
+    await this.ready();
 
     let metadata;
     try {
@@ -132,7 +165,7 @@ class LocalStackStorage extends StoragePort {
   }
 
   async listVideos() {
-    await this.ensureBucket();
+    await this.ready();
 
     const listed = await this.s3.send(
       new ListObjectsV2Command({
@@ -149,7 +182,7 @@ class LocalStackStorage extends StoragePort {
   }
 
   async getObjectBytes({ key }) {
-    await this.ensureBucket();
+    await this.ready();
 
     try {
       const object = await this.s3.send(
@@ -169,6 +202,10 @@ class LocalStackStorage extends StoragePort {
   }
 
   describe() {
+    if (this.profile === "aws") {
+      return [`AWS S3 bucket: ${this.bucket}`];
+    }
+
     return [
       `LocalStack S3 endpoint: ${this.endpoint}`,
       `S3 bucket: ${this.bucket}`

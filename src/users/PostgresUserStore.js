@@ -143,6 +143,7 @@ class PostgresUserStore {
        FROM "userFiles"
        WHERE userid = $1
          AND ${doctypeFilter}
+         AND filetype IN ('png', 'jpeg')
          AND fileurl IS NOT NULL
          AND fileurl <> ''
        ORDER BY CASE WHEN is_verified THEN 1 ELSE 0 END, id DESC

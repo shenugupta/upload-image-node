@@ -29,7 +29,7 @@ async function main() {
       config.profile === "mock"
         ? "Rekognition: mock face match"
         : config.profile === "aws"
-          ? "Rekognition: real AWS CompareFaces"
+          ? `Rekognition: real AWS CompareFaces (${config.aws.region})`
           : "Rekognition: LocalStack CompareFaces"
     );
     storage.describe().forEach((line) => console.log(line));
