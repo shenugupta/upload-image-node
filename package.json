@@ -2,21 +2,23 @@
   "name": "s3-upload-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "PROFILE=mock node src/server.js",
-    "start:mock": "PROFILE=mock node src/server.js",
-    "start:localstack": "PROFILE=localstack node src/server.js",
-    "start:aws": "PROFILE=aws node src/server.js",
-    "dev": "PROFILE=mock nodemon src/server.js",
-    "dev:mock": "PROFILE=mock nodemon src/server.js",
-    "dev:localstack": "PROFILE=localstack nodemon src/server.js",
-    "dev:aws": "PROFILE=aws nodemon src/server.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "PROFILE=mock tsx src/server.ts",
+    "start:mock": "PROFILE=mock tsx src/server.ts",
+    "start:localstack": "PROFILE=localstack tsx src/server.ts",
+    "start:aws": "PROFILE=aws tsx src/server.ts",
+    "dev": "PROFILE=mock nodemon --exec tsx src/server.ts",
+    "dev:mock": "PROFILE=mock nodemon --exec tsx src/server.ts",
+    "dev:localstack": "PROFILE=localstack nodemon --exec tsx src/server.ts",
+    "dev:aws": "PROFILE=aws nodemon --exec tsx src/server.ts",
     "localstack": "docker compose up -d",
     "postgres": "docker compose up -d postgres",
-    "workflow:mock": "PROFILE=mock node src/runWorkflow.js",
-    "workflow:localstack": "PROFILE=localstack node src/runWorkflow.js",
-    "workflow:aws": "PROFILE=aws node src/runWorkflow.js",
+    "workflow:mock": "PROFILE=mock tsx src/runWorkflow.ts",
+    "workflow:localstack": "PROFILE=localstack tsx src/runWorkflow.ts",
+    "workflow:aws": "PROFILE=aws tsx src/runWorkflow.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -33,6 +35,12 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.5.2",
+    "@types/pg": "^8.15.5",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   }
 }
