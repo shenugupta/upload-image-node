@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
+import { DocType, FileType } from "../enums";
 import { HttpError, NotFoundError, isPgError } from "../errors";
-import type { FileType, UserFile, UserProfile, UserStore } from "../types";
+import type { UserFile, UserProfile, UserStore } from "../types";
 
 export class PostgresUserStore implements UserStore {
   pool: Pool;
@@ -32,7 +33,7 @@ export class PostgresUserStore implements UserStore {
     await this.pool.query(`
       CREATE TABLE IF NOT EXISTS "userFiles" (
         id SERIAL PRIMARY KEY,
-        filetype TEXT NOT NULL CHECK (filetype IN ('png', 'jpeg', 'video', 'mov')),
+        filetype TEXT NOT NULL CHECK (filetype IN ('${FileType.Png}', '${FileType.Jpeg}', '${FileType.Video}', '${FileType.Mov}')),
         filename TEXT NOT NULL,
         fileurl TEXT NOT NULL,
         doctype TEXT NOT NULL,
@@ -120,7 +121,10 @@ export class PostgresUserStore implements UserStore {
       }
 
       if (isPgError(error) && error.code === "23514") {
-        throw new HttpError(400, "filetype must be png, jpeg, video, or mov");
+        throw new HttpError(
+          400,
+          `filetype must be ${FileType.Png}, ${FileType.Jpeg}, ${FileType.Video}, or ${FileType.Mov}`
+        );
       }
 
       throw error;
@@ -149,12 +153,12 @@ export class PostgresUserStore implements UserStore {
   ): Promise<UserFile | null> {
     const requested = String(doctype || "").trim().toUpperCase();
     const params = [userid];
-    let doctypeFilter = `UPPER(doctype) IN ('PAN', 'AADHAR', 'AADHAAR')`;
+    let doctypeFilter = `UPPER(doctype) IN ('${DocType.Pan}', '${DocType.Aadhar}', '${DocType.Aadhaar}')`;
 
-    if (requested === "PAN") {
-      doctypeFilter = `UPPER(doctype) = 'PAN'`;
-    } else if (requested === "AADHAR" || requested === "AADHAAR") {
-      doctypeFilter = `UPPER(doctype) IN ('AADHAR', 'AADHAAR')`;
+    if (requested === DocType.Pan) {
+      doctypeFilter = `UPPER(doctype) = '${DocType.Pan}'`;
+    } else if (requested === DocType.Aadhar || requested === DocType.Aadhaar) {
+      doctypeFilter = `UPPER(doctype) IN ('${DocType.Aadhar}', '${DocType.Aadhaar}')`;
     }
 
     const result = await this.pool.query<UserFile>(
@@ -162,7 +166,7 @@ export class PostgresUserStore implements UserStore {
        FROM "userFiles"
        WHERE userid = $1
          AND ${doctypeFilter}
-         AND filetype IN ('png', 'jpeg')
+         AND filetype IN ('${FileType.Png}', '${FileType.Jpeg}')
          AND fileurl IS NOT NULL
          AND fileurl <> ''
        ORDER BY CASE WHEN is_verified THEN 1 ELSE 0 END, id DESC
@@ -178,8 +182,8 @@ export class PostgresUserStore implements UserStore {
       `SELECT id, filename, fileurl, filetype, doctype, userid, is_verified
        FROM "userFiles"
        WHERE userid = $1
-         AND UPPER(doctype) = 'SELFIE'
-         AND filetype IN ('png', 'jpeg')
+         AND UPPER(doctype) = '${DocType.Selfie}'
+         AND filetype IN ('${FileType.Png}', '${FileType.Jpeg}')
          AND fileurl IS NOT NULL
          AND fileurl <> ''
        ORDER BY id DESC

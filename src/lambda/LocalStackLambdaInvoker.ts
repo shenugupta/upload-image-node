@@ -1,4 +1,5 @@
 import { InvokeCommand, type LambdaClient } from "@aws-sdk/client-lambda";
+import { LambdaInvokerKind } from "../enums";
 import type { LambdaInvoker, Profile } from "../types";
 
 export class LocalStackLambdaInvoker implements LambdaInvoker {
@@ -16,7 +17,7 @@ export class LocalStackLambdaInvoker implements LambdaInvoker {
   ): Promise<TResult> {
     console.log("[aws-lambda] Invoke", {
       profile: this.profile,
-      runtime: "localstack-lambda",
+      runtime: LambdaInvokerKind.Localstack,
       functionName,
       payload
     });

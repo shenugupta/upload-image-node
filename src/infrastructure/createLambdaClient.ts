@@ -1,3 +1,4 @@
+import { AwsPlaceholderCredential } from "../enums";
 import { LambdaClient } from "@aws-sdk/client-lambda";
 import type { AwsClientAuth } from "../types";
 
@@ -11,8 +12,8 @@ export function createLambdaClient({
     region,
     endpoint,
     credentials: {
-      accessKeyId: accessKeyId || "test",
-      secretAccessKey: secretAccessKey || "test"
+      accessKeyId: accessKeyId || AwsPlaceholderCredential.Test,
+      secretAccessKey: secretAccessKey || AwsPlaceholderCredential.Test
     }
   });
 }

@@ -1,20 +1,21 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { FileExtension, HttpMethod, MimeType, Profile } from "../enums";
 import { StoragePort } from "../ports/StoragePort";
 import { HttpError, NotFoundError } from "../errors";
-import type { ListedObject, Profile, UploadUrlResult, VideoResult } from "../types";
+import type { ListedObject, UploadUrlResult, VideoResult } from "../types";
 
 function contentTypeFromName(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase();
 
-  if (ext === ".mov") return "video/quicktime";
-  if (ext === ".mp4") return "video/mp4";
-  if (ext === ".webm") return "video/webm";
-  if (ext === ".mkv") return "video/x-matroska";
-  if (ext === ".avi") return "video/x-msvideo";
+  if (ext === `.${FileExtension.Mov}`) return MimeType.Quicktime;
+  if (ext === `.${FileExtension.Mp4}`) return MimeType.Mp4;
+  if (ext === `.${FileExtension.Webm}`) return MimeType.Webm;
+  if (ext === `.${FileExtension.Mkv}`) return MimeType.Matroska;
+  if (ext === `.${FileExtension.Avi}`) return MimeType.Avi;
 
-  return "application/octet-stream";
+  return MimeType.OctetStream;
 }
 
 export type MockStorageOptions = {
@@ -26,7 +27,7 @@ export type MockStorageOptions = {
 };
 
 export class MockStorage extends StoragePort {
-  profile: Profile = "mock";
+  profile: Profile = Profile.Mock;
   bucket: string;
   secret: string;
   uploadDir: string;
@@ -110,7 +111,7 @@ export class MockStorage extends StoragePort {
     const expires = Math.floor(Date.now() / 1000) + this.expiresIn;
 
     return {
-      url: this.signedUrl(key, contentType, expires, "PUT"),
+      url: this.signedUrl(key, contentType, expires, HttpMethod.Put),
       key,
       bucket: this.bucket,
       expires
@@ -134,10 +135,10 @@ export class MockStorage extends StoragePort {
   }): Promise<void> {
     this.verifySignature({
       key,
-      contentType: contentType || "application/octet-stream",
+      contentType: contentType || MimeType.OctetStream,
       expires,
       signature,
-      method: method || "PUT"
+      method: method || HttpMethod.Put
     });
 
     fs.writeFileSync(this.filePathFor(key), body);
@@ -155,7 +156,7 @@ export class MockStorage extends StoragePort {
     const expires = Math.floor(Date.now() / 1000) + this.expiresIn;
 
     return {
-      url: this.signedUrl(key, contentType, expires, "GET"),
+      url: this.signedUrl(key, contentType, expires, HttpMethod.Get),
       key,
       bucket: this.bucket,
       contentType,
@@ -207,7 +208,7 @@ export class MockStorage extends StoragePort {
       contentType: resolvedType,
       expires,
       signature,
-      method: method || "GET"
+      method: method || HttpMethod.Get
     });
 
     return {

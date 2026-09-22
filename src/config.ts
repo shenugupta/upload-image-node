@@ -1,9 +1,10 @@
 import path from "path";
-import type { AppConfig, AwsClientAuth, Profile } from "./types";
+import { AwsPlaceholderCredential, Profile, isProfile, PostgresHost } from "./enums";
+import type { AppConfig, AwsClientAuth } from "./types";
 
 function isPlaceholderSecret(value: string | undefined): boolean {
   const trimmed = String(value || "").trim();
-  return !trimmed || trimmed === "test";
+  return !trimmed || trimmed === AwsPlaceholderCredential.Test;
 }
 
 function loadAwsCredentials(env: NodeJS.ProcessEnv): AwsClientAuth {
@@ -28,9 +29,9 @@ function loadAwsCredentials(env: NodeJS.ProcessEnv): AwsClientAuth {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const profile = env.PROFILE as Profile | undefined;
+  const profile = env.PROFILE;
 
-  if (profile !== "mock" && profile !== "localstack" && profile !== "aws") {
+  if (!isProfile(profile)) {
     throw new Error(
       `Unknown PROFILE "${profile || ""}". Use npm run start:mock, npm run start:localstack, or npm run start:aws`
     );
@@ -57,8 +58,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
           ? `http://${env.LOCALSTACK_HOSTNAME}:4566`
           : "http://localhost:4566"),
       bucket: env.S3_BUCKET || "local-uploads",
-      accessKeyId: env.AWS_ACCESS_KEY_ID || "test",
-      secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "test",
+      accessKeyId: env.AWS_ACCESS_KEY_ID || AwsPlaceholderCredential.Test,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY || AwsPlaceholderCredential.Test,
       publicEndpoint: env.S3_PUBLIC_ENDPOINT || "http://localhost:4566"
     },
     aws: {
@@ -66,7 +67,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       bucket: env.AWS_S3_BUCKET
     },
     postgres: {
-      host: env.PGHOST || "localhost",
+      host: env.PGHOST || PostgresHost.Localhost,
       port: Number(env.PGPORT) || 5432,
       user: env.PGUSER || "postgres",
       password: env.PGPASSWORD || "postgres",

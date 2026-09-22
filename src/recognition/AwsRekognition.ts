@@ -4,6 +4,7 @@ import {
   type RekognitionClient
 } from "@aws-sdk/client-rekognition";
 import { errorMessage } from "../errors";
+import { FileType } from "../enums";
 import type { FaceMatchImage, FaceMatchResult, RekognitionPort } from "../types";
 
 const MATCH_SIMILARITY_THRESHOLD = 99;
@@ -41,7 +42,7 @@ export class AwsRekognition implements RekognitionPort {
   }
 
   isSupportedImage(file?: FaceMatchImage): boolean {
-    return file?.filetype === "png" || file?.filetype === "jpeg";
+    return file?.filetype === FileType.Png || file?.filetype === FileType.Jpeg;
   }
 
   async verifyFaceMatch({

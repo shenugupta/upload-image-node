@@ -1,8 +1,20 @@
 import path from "path";
 import { HttpError } from "../errors";
-import type { FileType } from "../types";
+import { FileExtension, FileType, MimeType } from "../enums";
 
-export const ALLOWED_FILE_TYPES: FileType[] = ["png", "jpeg", "video", "mov"];
+export const ALLOWED_FILE_TYPES: FileType[] = [
+  FileType.Png,
+  FileType.Jpeg,
+  FileType.Video,
+  FileType.Mov
+];
+
+const VIDEO_EXTENSIONS = [
+  FileExtension.Mp4,
+  FileExtension.Webm,
+  FileExtension.Mkv,
+  FileExtension.Avi
+];
 
 export function fileTypeFromUpload({
   fileName,
@@ -14,25 +26,25 @@ export function fileTypeFromUpload({
   const ext = path.extname(String(fileName || "")).toLowerCase().replace(".", "");
   const type = String(contentType || "").toLowerCase();
 
-  if (type === "image/png" || ext === "png") {
-    return "png";
+  if (type === MimeType.Png || ext === FileExtension.Png) {
+    return FileType.Png;
   }
 
   if (
-    type === "image/jpeg" ||
-    type === "image/jpg" ||
-    ext === "jpeg" ||
-    ext === "jpg"
+    type === MimeType.Jpeg ||
+    type === MimeType.Jpg ||
+    ext === FileExtension.Jpeg ||
+    ext === FileExtension.Jpg
   ) {
-    return "jpeg";
+    return FileType.Jpeg;
   }
 
-  if (type === "video/quicktime" || ext === "mov") {
-    return "mov";
+  if (type === MimeType.Quicktime || ext === FileExtension.Mov) {
+    return FileType.Mov;
   }
 
-  if (type.startsWith("video/") || ["mp4", "webm", "mkv", "avi"].includes(ext)) {
-    return "video";
+  if (type.startsWith("video/") || VIDEO_EXTENSIONS.includes(ext as FileExtension)) {
+    return FileType.Video;
   }
 
   throw new HttpError(400, `filetype must be ${ALLOWED_FILE_TYPES.join(", ")}`);

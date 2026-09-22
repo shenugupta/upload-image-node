@@ -1,3 +1,4 @@
+import { LambdaInvokerKind } from "../enums";
 import type { LambdaContext, LambdaHandler, LambdaInvoker, Profile } from "../types";
 import { handler as generateUploadUrl } from "./generateUploadUrl";
 import { handler as listVideos } from "./listVideos";
@@ -25,7 +26,7 @@ export class MockLambdaInvoker implements LambdaInvoker {
   ): Promise<TResult> {
     console.log("[aws-lambda] Invoke", {
       profile: this.profile,
-      runtime: "aws-lambda-handler",
+      runtime: LambdaInvokerKind.Handler,
       functionName,
       payload
     });

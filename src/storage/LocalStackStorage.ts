@@ -9,9 +9,10 @@ import {
   type S3Client
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { AwsErrorName, HttpMethod, Profile } from "../enums";
 import { StoragePort } from "../ports/StoragePort";
 import { NotFoundError, errorMessage, isNamedError } from "../errors";
-import type { ListedObject, Profile, UploadUrlResult, VideoResult } from "../types";
+import type { ListedObject, UploadUrlResult, VideoResult } from "../types";
 
 export type S3StorageOptions = {
   s3: S3Client;
@@ -38,7 +39,7 @@ export class LocalStackStorage extends StoragePort {
     expiresIn,
     endpoint,
     publicEndpoint,
-    profile = "localstack",
+    profile = Profile.Localstack,
     manageBucket = true
   }: S3StorageOptions) {
     super();
@@ -69,8 +70,8 @@ export class LocalStackStorage extends StoragePort {
     }
 
     return (
-      error.name === "NotFound" ||
-      error.name === "NoSuchKey" ||
+      error.name === AwsErrorName.NotFound ||
+      error.name === AwsErrorName.NoSuchKey ||
       error.$metadata?.httpStatusCode === 404
     );
   }
@@ -81,7 +82,9 @@ export class LocalStackStorage extends StoragePort {
     } catch (error) {
       const alreadyExists =
         isNamedError(error) &&
-        ["BucketAlreadyOwnedByYou", "BucketAlreadyExists"].includes(error.name);
+        [AwsErrorName.BucketAlreadyOwnedByYou, AwsErrorName.BucketAlreadyExists].includes(
+          error.name as AwsErrorName
+        );
 
       if (!alreadyExists) {
         throw error;
@@ -95,7 +98,7 @@ export class LocalStackStorage extends StoragePort {
           CORSRules: [
             {
               AllowedHeaders: ["*"],
-              AllowedMethods: ["GET", "PUT", "POST", "HEAD"],
+              AllowedMethods: [HttpMethod.Get, HttpMethod.Put, HttpMethod.Post, HttpMethod.Head],
               AllowedOrigins: ["*"],
               ExposeHeaders: ["ETag"],
               MaxAgeSeconds: 3000
@@ -235,7 +238,7 @@ export class LocalStackStorage extends StoragePort {
   }
 
   describe(): string[] {
-    if (this.profile === "aws") {
+    if (this.profile === Profile.Aws) {
       return [`AWS S3 bucket: ${this.bucket}`];
     }
 

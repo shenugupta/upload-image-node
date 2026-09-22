@@ -5,6 +5,7 @@ import express, {
 } from "express";
 import cors from "cors";
 import path from "path";
+import { HttpMethod, LambdaInvokerKind, Profile, RekognitionMode } from "./enums";
 import { StoragePort } from "./ports/StoragePort";
 import { HttpError, NotFoundError, errorMessage } from "./errors";
 import { LAMBDA_FUNCTIONS } from "./lambda/functionNames";
@@ -102,7 +103,7 @@ function mountDirectUploadRoutes(
           body: Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []),
           expires: asString(req.query.expires),
           signature: asString(req.query.signature),
-          method: asString(req.query.method) || "PUT"
+          method: asString(req.query.method) || HttpMethod.Put
         });
 
         res.json({
@@ -124,7 +125,7 @@ function mountDirectUploadRoutes(
         key,
         expires: asString(req.query.expires),
         signature: asString(req.query.signature),
-        method: asString(req.query.method) || "GET",
+        method: asString(req.query.method) || HttpMethod.Get,
         contentType: asString(req.query.contentType)
       });
 
@@ -179,15 +180,15 @@ export function createApp({
       port: config.port,
       bucket: storage.bucket,
       lambda:
-        storage.profile === "localstack"
-          ? "localstack-lambda"
-          : "aws-lambda-handler",
+        storage.profile === Profile.Localstack
+          ? LambdaInvokerKind.Localstack
+          : LambdaInvokerKind.Handler,
       rekognition:
-        config.profile === "aws"
-          ? "aws-compare-faces"
-          : config.profile === "localstack"
-            ? "localstack-compare-faces"
-            : "mock-compare-faces"
+        config.profile === Profile.Aws
+          ? RekognitionMode.Aws
+          : config.profile === Profile.Localstack
+            ? RekognitionMode.Localstack
+            : RekognitionMode.Mock
     });
   });
 

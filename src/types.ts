@@ -1,9 +1,8 @@
 import type { Pool } from "pg";
 import type { StoragePort } from "./ports/StoragePort";
+import { FileType, Profile } from "./enums";
 
-export type Profile = "mock" | "localstack" | "aws";
-
-export type FileType = "png" | "jpeg" | "video" | "mov";
+export { FileType, Profile };
 
 export type AwsClientAuth = {
   region: string;

@@ -1,3 +1,4 @@
+import { DocType, Profile } from "../enums";
 import { HttpError } from "../errors";
 import { fileTypeFromUpload } from "./fileTypeFromUpload";
 import { resolveUser } from "./resolveUser";
@@ -10,8 +11,8 @@ function normalizeDoctype(doctype: string | undefined, profile?: string): string
     return trimmed;
   }
 
-  if (profile === "mock") {
-    return "OTHER";
+  if (profile === Profile.Mock) {
+    return DocType.Other;
   }
 
   throw new HttpError(400, "doctype is required");

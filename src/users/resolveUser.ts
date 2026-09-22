@@ -1,3 +1,4 @@
+import { Profile } from "../enums";
 import { HttpError, NotFoundError } from "../errors";
 import type { UserProfile, UserStore } from "../types";
 
@@ -35,7 +36,7 @@ export async function resolveUser(
     return user;
   }
 
-  if (process.env.PROFILE === "mock") {
+  if (process.env.PROFILE === Profile.Mock) {
     return users.ensureMockUser();
   }
 

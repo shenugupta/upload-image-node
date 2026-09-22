@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { Profile } from "./enums";
 import { loadConfig } from "./config";
 import { createContainer } from "./container";
 import { createApp } from "./app";
@@ -27,9 +28,9 @@ async function main(): Promise<void> {
     console.log(`Server running at http://localhost:${config.port}`);
     console.log(`Profile: ${config.profile}`);
     console.log(
-      config.profile === "mock"
+      config.profile === Profile.Mock
         ? "Rekognition: mock face match"
-        : config.profile === "aws"
+        : config.profile === Profile.Aws
           ? `Rekognition: real AWS CompareFaces (${config.aws.region})`
           : "Rekognition: LocalStack CompareFaces"
     );

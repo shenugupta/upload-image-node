@@ -1,3 +1,4 @@
+import { Profile } from "./enums";
 import { createStorageDependencies } from "./createStorage";
 import { MockLambdaInvoker } from "./lambda/MockLambdaInvoker";
 import { LocalStackLambdaInvoker } from "./lambda/LocalStackLambdaInvoker";
@@ -64,9 +65,9 @@ export async function createContainer(config: AppConfig): Promise<
 > {
   let dependencies: ContainerDependencies;
 
-  if (process.env.PROFILE === "mock" || process.env.PROFILE === "aws") {
+  if (process.env.PROFILE === Profile.Mock || process.env.PROFILE === Profile.Aws) {
     dependencies = await createMockDependencies(config);
-  } else if (process.env.PROFILE === "localstack") {
+  } else if (process.env.PROFILE === Profile.Localstack) {
     dependencies = await createLocalstackDependencies(config);
   } else {
     throw new Error(

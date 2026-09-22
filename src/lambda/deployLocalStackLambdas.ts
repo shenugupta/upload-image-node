@@ -13,6 +13,15 @@ import { CreateBucketCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createS3Client } from "../infrastructure/createS3Client";
 import { LAMBDA_FUNCTIONS } from "./functionNames";
 import { isNamedError } from "../errors";
+import {
+  AwsErrorName,
+  AwsPlaceholderCredential,
+  LambdaLastUpdateStatus,
+  LambdaRuntime,
+  LambdaState,
+  PostgresHost,
+  Profile
+} from "../enums";
 import type { AppConfig } from "../types";
 
 const ARTIFACT_BUCKET = "lambda-artifacts";
@@ -49,7 +58,9 @@ async function ensureArtifactBucket(s3: ReturnType<typeof createS3Client>): Prom
   } catch (error) {
     const alreadyExists =
       isNamedError(error) &&
-      ["BucketAlreadyOwnedByYou", "BucketAlreadyExists"].includes(error.name);
+        [AwsErrorName.BucketAlreadyOwnedByYou, AwsErrorName.BucketAlreadyExists].includes(
+          error.name as AwsErrorName
+        );
 
     if (!alreadyExists) {
       throw error;
@@ -65,7 +76,7 @@ async function functionExists(
     await lambda.send(new GetFunctionCommand({ FunctionName: functionName }));
     return true;
   } catch (error) {
-    if (isNamedError(error) && error.name === "ResourceNotFoundException") {
+    if (isNamedError(error) && error.name === AwsErrorName.ResourceNotFoundException) {
       return false;
     }
     throw error;
@@ -83,14 +94,17 @@ async function waitForActive(
     const state = info.Configuration?.State;
     const lastUpdate = info.Configuration?.LastUpdateStatus;
 
-    if (state === "Active" && lastUpdate !== "InProgress") {
+    if (
+      state === LambdaState.Active &&
+      lastUpdate !== LambdaLastUpdateStatus.InProgress
+    ) {
       return;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  throw new Error(`Lambda ${functionName} did not become Active`);
+  throw new Error(`Lambda ${functionName} did not become ${LambdaState.Active}`);
 }
 
 async function sendWithRetry(
@@ -102,7 +116,7 @@ async function sendWithRetry(
       return await lambda.send(command as never);
     } catch (error) {
       const busy =
-        (isNamedError(error) && error.name === "ResourceConflictException") ||
+        (isNamedError(error) && error.name === AwsErrorName.ResourceConflictException) ||
         String(errorMessageSafe(error)).includes("update is in progress");
 
       if (!busy || attempt === 14) {
@@ -141,15 +155,15 @@ export async function ensureLocalStackLambdas({
 
   const environment = {
     Variables: {
-      PROFILE: "localstack",
+      PROFILE: Profile.Localstack,
       AWS_REGION: config.localstack.region,
-      AWS_ACCESS_KEY_ID: config.localstack.accessKeyId || "test",
-      AWS_SECRET_ACCESS_KEY: config.localstack.secretAccessKey || "test",
+      AWS_ACCESS_KEY_ID: config.localstack.accessKeyId || AwsPlaceholderCredential.Test,
+      AWS_SECRET_ACCESS_KEY: config.localstack.secretAccessKey || AwsPlaceholderCredential.Test,
       S3_BUCKET: config.localstack.bucket,
       S3_PUBLIC_ENDPOINT: config.localstack.publicEndpoint,
       PGHOST:
-        config.postgres.host === "localhost"
-          ? "host.docker.internal"
+        config.postgres.host === PostgresHost.Localhost
+          ? PostgresHost.DockerInternal
           : config.postgres.host,
       PGPORT: String(config.postgres.port),
       PGUSER: config.postgres.user,
@@ -166,7 +180,7 @@ export async function ensureLocalStackLambdas({
       await lambda.send(
         new CreateFunctionCommand({
           FunctionName: functionName,
-          Runtime: "nodejs20.x",
+          Runtime: LambdaRuntime.Nodejs20,
           Role: "arn:aws:iam::000000000000:role/lambda-role",
           Handler: handler,
           Timeout: 30,
