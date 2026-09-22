@@ -5,12 +5,12 @@ export class MockRekognition implements RekognitionPort {
     document,
     selfie
   }: {
-    document: FaceMatchImage;
-    selfie: FaceMatchImage;
-  }): Promise<FaceMatchResult> {
+    document?: FaceMatchImage;
+    selfie?: FaceMatchImage;
+  } = {}): Promise<FaceMatchResult> {
     console.log("[rekognition] mock face match", {
-      document: document.fileurl,
-      selfie: selfie.fileurl
+      document: document?.fileurl,
+      selfie: selfie?.fileurl
     });
 
     if (!document?.fileurl || !selfie?.fileurl) {

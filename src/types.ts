@@ -120,9 +120,9 @@ export type VerifyUserDocumentsResult = {
 };
 
 export interface RekognitionPort {
-  verifyFaceMatch(input: {
-    document: FaceMatchImage;
-    selfie: FaceMatchImage;
+  verifyFaceMatch(input?: {
+    document?: FaceMatchImage;
+    selfie?: FaceMatchImage;
   }): Promise<FaceMatchResult>;
 }
 

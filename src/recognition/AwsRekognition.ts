@@ -23,12 +23,12 @@ export class AwsRekognition implements RekognitionPort {
     this.localStack = localStack;
   }
 
-  imagePayload(file: FaceMatchImage): Image | null {
-    if (file.bytes && file.bytes.length > 0) {
+  imagePayload(file?: FaceMatchImage): Image | null {
+    if (file?.bytes?.length) {
       return { Bytes: file.bytes };
     }
 
-    if (file.key && file.bucket) {
+    if (file?.key && file?.bucket) {
       return {
         S3Object: {
           Bucket: file.bucket,
@@ -40,21 +40,21 @@ export class AwsRekognition implements RekognitionPort {
     return null;
   }
 
-  isSupportedImage(file: FaceMatchImage): boolean {
-    return file.filetype === "png" || file.filetype === "jpeg";
+  isSupportedImage(file?: FaceMatchImage): boolean {
+    return file?.filetype === "png" || file?.filetype === "jpeg";
   }
 
   async verifyFaceMatch({
     document,
     selfie
   }: {
-    document: FaceMatchImage;
-    selfie: FaceMatchImage;
-  }): Promise<FaceMatchResult> {
+    document?: FaceMatchImage;
+    selfie?: FaceMatchImage;
+  } = {}): Promise<FaceMatchResult> {
     console.log("[rekognition] compare selfie with document", {
-      document: document.fileurl,
-      selfie: selfie.fileurl,
-      doctype: document.doctype,
+      document: document?.fileurl,
+      selfie: selfie?.fileurl,
+      doctype: document?.doctype,
       localStack: this.localStack
     });
 
@@ -70,7 +70,7 @@ export class AwsRekognition implements RekognitionPort {
     const targetImage = this.imagePayload(selfie);
 
     if (!sourceImage || !targetImage) {
-      if (this.localStack && document.fileurl && selfie.fileurl) {
+      if (this.localStack && document?.fileurl && selfie?.fileurl) {
         return {
           verified: true,
           similarity: 99,
@@ -86,7 +86,7 @@ export class AwsRekognition implements RekognitionPort {
     }
 
     try {
-      const compared = await this.client.send(
+      const compared = await this.client?.send(
         new CompareFacesCommand({
           SourceImage: sourceImage,
           TargetImage: targetImage,
@@ -94,7 +94,7 @@ export class AwsRekognition implements RekognitionPort {
         })
       );
 
-      const similarity = compared.FaceMatches?.[0]?.Similarity || 0;
+      const similarity = compared?.FaceMatches?.[0]?.Similarity ?? 0;
 
       if (similarity >= MATCH_SIMILARITY_THRESHOLD) {
         return {
@@ -120,7 +120,7 @@ export class AwsRekognition implements RekognitionPort {
     } catch (error) {
       console.log("[rekognition] compare failed", errorMessage(error) || error);
 
-      if (this.localStack && document.fileurl && selfie.fileurl) {
+      if (this.localStack && document?.fileurl && selfie?.fileurl) {
         return {
           verified: true,
           similarity: 99,
