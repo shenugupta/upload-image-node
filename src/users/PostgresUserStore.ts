@@ -1,7 +1,7 @@
 import type { Pool } from "pg";
 import { DocType, FileType } from "../enums";
 import { HttpError, NotFoundError, isPgError } from "../errors";
-import type { UserFile, UserProfile, UserStore } from "../types";
+import type { CreateFileInput, CreateUserInput, UserFile, UserProfile, UserStore } from "../types";
 
 export class PostgresUserStore implements UserStore {
   pool: Pool;
@@ -99,13 +99,7 @@ export class PostgresUserStore implements UserStore {
     fileurl,
     doctype,
     userid
-  }: {
-    filename: string;
-    filetype: FileType;
-    fileurl: string;
-    doctype: string;
-    userid: number;
-  }): Promise<UserFile> {
+  }: CreateFileInput): Promise<UserFile> {
     try {
       const result = await this.pool.query<UserFile>(
         `INSERT INTO "userFiles" (filetype, filename, fileurl, doctype, userid)
@@ -198,11 +192,7 @@ export class PostgresUserStore implements UserStore {
     name,
     email,
     phone
-  }: {
-    name: string;
-    email: string;
-    phone: string | null;
-  }): Promise<UserProfile> {
+  }: CreateUserInput): Promise<UserProfile> {
     try {
       const result = await this.pool.query<UserProfile>(
         `INSERT INTO "userProfile" (name, email, phone)

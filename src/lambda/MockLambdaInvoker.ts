@@ -1,5 +1,5 @@
 import { LambdaInvokerKind } from "../enums";
-import type { LambdaContext, LambdaHandler, LambdaInvoker, Profile } from "../types";
+import type { LambdaContext, LambdaHandler, LambdaInvoker, LambdaPayload, LambdaResult, Profile } from "../types";
 import { handler as generateUploadUrl } from "./generateUploadUrl";
 import { handler as listVideos } from "./listVideos";
 import { handler as getVideo } from "./getVideo";
@@ -8,7 +8,7 @@ import { LAMBDA_FUNCTIONS, type LambdaFunctionName } from "./functionNames";
 
 export class MockLambdaInvoker implements LambdaInvoker {
   profile: Profile;
-  handlers: Record<LambdaFunctionName, LambdaHandler>;
+  handlers: Record<LambdaFunctionName, LambdaHandler<LambdaPayload, LambdaResult>>;
 
   constructor({ profile }: { profile: Profile }) {
     this.profile = profile;
@@ -20,9 +20,9 @@ export class MockLambdaInvoker implements LambdaInvoker {
     };
   }
 
-  async invoke<TResult = unknown>(
+  async invoke<TResult extends LambdaResult = LambdaResult>(
     functionName: string,
-    payload: Record<string, unknown>
+    payload: LambdaPayload
   ): Promise<TResult> {
     console.log("[aws-lambda] Invoke", {
       profile: this.profile,

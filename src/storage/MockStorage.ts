@@ -4,7 +4,7 @@ import path from "path";
 import { FileExtension, HttpMethod, MimeType, Profile } from "../enums";
 import { StoragePort } from "../ports/StoragePort";
 import { HttpError, NotFoundError } from "../errors";
-import type { ListedObject, UploadUrlResult, VideoResult } from "../types";
+import type { CreateUploadUrlInput, ListedObject, StorageKeyInput, UploadUrlResult, VideoResult } from "../types";
 
 function contentTypeFromName(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase();
@@ -17,6 +17,29 @@ function contentTypeFromName(fileName: string): string {
 
   return MimeType.OctetStream;
 }
+
+export type MockSignedRequest = {
+  key: string;
+  contentType: string;
+  expires?: string | number;
+  signature?: string;
+  method?: string;
+};
+
+export type MockPutObjectInput = Omit<MockSignedRequest, "contentType"> & {
+  body: Buffer;
+  contentType?: string;
+};
+
+export type MockReadObjectInput = Omit<MockSignedRequest, "contentType"> & {
+  contentType?: string;
+};
+
+export type MockReadObjectResult = {
+  body: Buffer;
+  contentType: string;
+  contentLength: number;
+};
 
 export type MockStorageOptions = {
   secret: string;
@@ -73,13 +96,7 @@ export class MockStorage extends StoragePort {
     expires,
     signature,
     method
-  }: {
-    key: string;
-    contentType: string;
-    expires?: string | number;
-    signature?: string;
-    method?: string;
-  }): void {
+  }: MockSignedRequest): void {
     if (!expires || !signature || !method) {
       throw new HttpError(400, "Invalid URL");
     }
@@ -104,10 +121,7 @@ export class MockStorage extends StoragePort {
   async createUploadUrl({
     key,
     contentType
-  }: {
-    key: string;
-    contentType: string;
-  }): Promise<UploadUrlResult> {
+  }: CreateUploadUrlInput): Promise<UploadUrlResult> {
     const expires = Math.floor(Date.now() / 1000) + this.expiresIn;
 
     return {
@@ -125,14 +139,7 @@ export class MockStorage extends StoragePort {
     expires,
     signature,
     method
-  }: {
-    key: string;
-    contentType?: string;
-    body: Buffer;
-    expires?: string | number;
-    signature?: string;
-    method?: string;
-  }): Promise<void> {
+  }: MockPutObjectInput): Promise<void> {
     this.verifySignature({
       key,
       contentType: contentType || MimeType.OctetStream,
@@ -144,7 +151,7 @@ export class MockStorage extends StoragePort {
     fs.writeFileSync(this.filePathFor(key), body);
   }
 
-  async getVideo({ key }: { key: string }): Promise<VideoResult> {
+  async getVideo({ key }: StorageKeyInput): Promise<VideoResult> {
     const filePath = this.filePathFor(key);
 
     if (!fs.existsSync(filePath)) {
@@ -188,13 +195,7 @@ export class MockStorage extends StoragePort {
     signature,
     method,
     contentType
-  }: {
-    key: string;
-    expires?: string | number;
-    signature?: string;
-    method?: string;
-    contentType?: string;
-  }): Promise<{ body: Buffer; contentType: string; contentLength: number }> {
+  }: MockReadObjectInput): Promise<MockReadObjectResult> {
     const filePath = this.filePathFor(key);
 
     if (!fs.existsSync(filePath)) {
@@ -218,7 +219,7 @@ export class MockStorage extends StoragePort {
     };
   }
 
-  async getObjectBytes({ key }: { key: string }): Promise<Buffer> {
+  async getObjectBytes({ key }: StorageKeyInput): Promise<Buffer> {
     const filePath = this.filePathFor(key);
 
     if (!fs.existsSync(filePath)) {

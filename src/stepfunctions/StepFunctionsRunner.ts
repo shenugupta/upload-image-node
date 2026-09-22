@@ -1,7 +1,16 @@
 import { LAMBDA_FUNCTIONS } from "../lambda/functionNames";
 import { errorMessage } from "../errors";
 import { WorkflowState, WorkflowStatus } from "../enums";
-import type { LambdaInvoker, Profile, WorkflowInput } from "../types";
+import type {
+  GenerateUploadUrlResult,
+  GetVideoResult,
+  LambdaInvoker,
+  ListedVideo,
+  Profile,
+  VerifyUserDocumentsResult,
+  WorkflowInput,
+  WorkflowOutput
+} from "../types";
 
 export class StepFunctionsRunner {
   lambdaInvoker: LambdaInvoker;
@@ -22,7 +31,7 @@ export class StepFunctionsRunner {
     executionName: string;
     status: WorkflowStatus;
     profile: Profile;
-    output: Record<string, unknown>;
+    output: WorkflowOutput;
   }> {
     const executionName = `video-workflow-${Date.now()}`;
 
@@ -37,7 +46,7 @@ export class StepFunctionsRunner {
       state: WorkflowState.GenerateUploadUrl,
       resource: LAMBDA_FUNCTIONS.generateUploadUrl
     });
-    const upload = await this.lambdaInvoker.invoke<{ key: string }>(
+    const upload = await this.lambdaInvoker.invoke<GenerateUploadUrlResult>(
       LAMBDA_FUNCTIONS.generateUploadUrl,
       input
     );
@@ -52,7 +61,7 @@ export class StepFunctionsRunner {
       state: WorkflowState.ListVideos,
       resource: LAMBDA_FUNCTIONS.listVideos
     });
-    const list = await this.lambdaInvoker.invoke<unknown[]>(
+    const list = await this.lambdaInvoker.invoke<ListedVideo[]>(
       LAMBDA_FUNCTIONS.listVideos,
       {}
     );
@@ -62,17 +71,20 @@ export class StepFunctionsRunner {
       output: { count: Array.isArray(list) ? list.length : 0 }
     });
 
-    let video: unknown = null;
-    let verification: unknown = null;
+    let video: GetVideoResult | null = null;
+    let verification: VerifyUserDocumentsResult | null = null;
     try {
       console.log("[stepfunctions] TaskStateEntered", {
         profile: this.profile,
         state: WorkflowState.GetVideo,
         resource: LAMBDA_FUNCTIONS.getVideo
       });
-      video = await this.lambdaInvoker.invoke(LAMBDA_FUNCTIONS.getVideo, {
-        key: upload.key
-      });
+      video = await this.lambdaInvoker.invoke<GetVideoResult>(
+        LAMBDA_FUNCTIONS.getVideo,
+        {
+          key: upload.key
+        }
+      );
       console.log("[stepfunctions] TaskStateExited", {
         profile: this.profile,
         state: WorkflowState.GetVideo,
@@ -96,7 +108,7 @@ export class StepFunctionsRunner {
         state: WorkflowState.VerifyUserDocuments,
         resource: LAMBDA_FUNCTIONS.verifyUserDocuments
       });
-      verification = await this.lambdaInvoker.invoke(
+      verification = await this.lambdaInvoker.invoke<VerifyUserDocumentsResult>(
         LAMBDA_FUNCTIONS.verifyUserDocuments,
         {
           userId: input.userId,

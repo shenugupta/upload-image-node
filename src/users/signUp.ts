@@ -1,10 +1,10 @@
 import { HttpError } from "../errors";
 import { normalizeEmail } from "./resolveUser";
-import type { UserProfile, UserStore } from "../types";
+import type { SignUpInput, UserProfile, UserStore } from "../types";
 
 export async function signUp(
   users: UserStore,
-  { name, email, phone }: { name?: string; email?: string; phone?: string }
+  { name, email, phone }: SignUpInput
 ): Promise<UserProfile> {
   const trimmedName = String(name || "").trim();
   const normalizedEmail = normalizeEmail(email);

@@ -7,12 +7,14 @@ import {
   GetFunctionCommand,
   UpdateFunctionCodeCommand,
   UpdateFunctionConfigurationCommand,
-  type LambdaClient
+  type LambdaClient,
+  type UpdateFunctionCodeCommandOutput,
+  type UpdateFunctionConfigurationCommandOutput
 } from "@aws-sdk/client-lambda";
 import { CreateBucketCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createS3Client } from "../infrastructure/createS3Client";
-import { LAMBDA_FUNCTIONS } from "./functionNames";
-import { isNamedError } from "../errors";
+import { LAMBDA_FUNCTIONS, type LambdaFunctionName } from "./functionNames";
+import { errorMessage, isNamedError } from "../errors";
 import {
   AwsErrorName,
   AwsPlaceholderCredential,
@@ -28,7 +30,7 @@ const ARTIFACT_BUCKET = "lambda-artifacts";
 const ARTIFACT_KEY = "video-lambdas.zip";
 const PROJECT_ROOT = path.join(__dirname, "../..");
 
-const HANDLERS: Record<string, string> = {
+const HANDLERS: Record<LambdaFunctionName, string> = {
   [LAMBDA_FUNCTIONS.generateUploadUrl]: "dist/lambda/generateUploadUrl.handler",
   [LAMBDA_FUNCTIONS.listVideos]: "dist/lambda/listVideos.handler",
   [LAMBDA_FUNCTIONS.getVideo]: "dist/lambda/getVideo.handler",
@@ -110,14 +112,14 @@ async function waitForActive(
 async function sendWithRetry(
   lambda: LambdaClient,
   command: UpdateFunctionCodeCommand | UpdateFunctionConfigurationCommand
-): Promise<unknown> {
+): Promise<UpdateFunctionCodeCommandOutput | UpdateFunctionConfigurationCommandOutput> {
   for (let attempt = 0; attempt < 15; attempt += 1) {
     try {
       return await lambda.send(command as never);
     } catch (error) {
       const busy =
         (isNamedError(error) && error.name === AwsErrorName.ResourceConflictException) ||
-        String(errorMessageSafe(error)).includes("update is in progress");
+        errorMessage(error).includes("update is in progress");
 
       if (!busy || attempt === 14) {
         throw error;
@@ -126,10 +128,8 @@ async function sendWithRetry(
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
-}
 
-function errorMessageSafe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  throw new Error("Lambda update did not complete");
 }
 
 export async function ensureLocalStackLambdas({

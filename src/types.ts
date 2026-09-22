@@ -118,11 +118,13 @@ export type VerifyUserDocumentsResult = {
   selfie: PublicUserFile | null;
 };
 
+export type FaceMatchInput = {
+  document?: FaceMatchImage;
+  selfie?: FaceMatchImage;
+};
+
 export interface RekognitionPort {
-  verifyFaceMatch(input?: {
-    document?: FaceMatchImage;
-    selfie?: FaceMatchImage;
-  }): Promise<FaceMatchResult>;
+  verifyFaceMatch(input?: FaceMatchInput): Promise<FaceMatchResult>;
 }
 
 export type LambdaContext = {
@@ -131,15 +133,117 @@ export type LambdaContext = {
   invokedFunctionArn?: string;
 };
 
-export type LambdaHandler<TEvent = Record<string, unknown>, TResult = unknown> = (
-  event: TEvent,
-  context: LambdaContext
-) => Promise<TResult>;
+export type QueryParamValue =
+  | string
+  | string[]
+  | { [key: string]: QueryParamValue }
+  | QueryParamValue[]
+  | undefined;
+
+export type ErrorLike = {
+  name?: string;
+  message?: string;
+  code?: string | number;
+  status?: number;
+  $metadata?: {
+    httpStatusCode?: number;
+  };
+  errorMessage?: string;
+  errorType?: string;
+};
+
+export type CaughtError = Error | ErrorLike | string | null | undefined;
+
+export type SignUpInput = {
+  name?: string;
+  email?: string;
+  phone?: string;
+};
+
+export type SignInInput = {
+  email?: string;
+  phone?: string;
+};
+
+export type ResolveUserInput = {
+  userId?: string | number;
+  email?: string;
+};
+
+export type CreateUserInput = {
+  name: string;
+  email: string;
+  phone: string | null;
+};
+
+export type CreateFileInput = {
+  filename: string;
+  filetype: FileType;
+  fileurl: string;
+  doctype: string;
+  userid: number;
+};
+
+export type RecordUserFileInput = {
+  userId?: string | number;
+  email?: string;
+  fileName?: string;
+  contentType?: string;
+  fileurl?: string;
+  doctype?: string;
+};
+
+export type LambdaPayload = {
+  fileName?: string;
+  contentType?: string;
+  key?: string;
+  userId?: string | number;
+  email?: string;
+  doctype?: string;
+};
+
+export type VerifyDocumentsInput = Pick<LambdaPayload, "userId" | "email" | "doctype">;
+
+export type StorageKeyInput = {
+  key: string;
+};
+
+export type CreateUploadUrlInput = {
+  key: string;
+  contentType: string;
+};
+
+export type FileUploadMeta = Pick<LambdaPayload, "fileName" | "contentType">;
+
+export type LambdaErrorPayload = {
+  errorMessage?: string;
+  errorType?: string;
+};
+
+export type ListedVideo = ListedObject & {
+  openUrl: string;
+  getVideoUrl: string;
+};
+
+export type GetVideoResult = VideoResult & {
+  openUrl: string;
+};
+
+export type LambdaResult =
+  | GenerateUploadUrlResult
+  | GetVideoResult
+  | ListedVideo[]
+  | VerifyUserDocumentsResult;
+
+export type LambdaHandler<
+  TEvent = LambdaPayload,
+  TResult = LambdaResult
+> = (event: TEvent, context: LambdaContext) => Promise<TResult>;
 
 export interface LambdaInvoker {
-  invoke<TResult = unknown>(
+  invoke<TResult extends LambdaResult = LambdaResult>(
     functionName: string,
-    payload: Record<string, unknown>
+    payload: LambdaPayload
   ): Promise<TResult>;
 }
 
@@ -148,18 +252,8 @@ export type UserStore = {
   findByEmail(email: string): Promise<UserProfile | null>;
   findById(id: number): Promise<UserProfile | null>;
   ensureMockUser(): Promise<UserProfile>;
-  create(input: {
-    name: string;
-    email: string;
-    phone: string | null;
-  }): Promise<UserProfile>;
-  createFile(input: {
-    filename: string;
-    filetype: FileType;
-    fileurl: string;
-    doctype: string;
-    userid: number;
-  }): Promise<UserFile>;
+  create(input: CreateUserInput): Promise<UserProfile>;
+  createFile(input: CreateFileInput): Promise<UserFile>;
   markVerified(ids: number[]): Promise<UserFile[]>;
   findDocumentForUser(
     userid: number,
@@ -168,13 +262,14 @@ export type UserStore = {
   findSelfieForUser(userid: number): Promise<UserFile | null>;
 };
 
-export type WorkflowInput = {
-  fileName?: string;
-  contentType?: string;
-  userId?: string | number;
-  email?: string;
-  doctype?: string;
-  key?: string;
+export type WorkflowInput = LambdaPayload;
+
+export type WorkflowOutput = {
+  profile: Profile;
+  upload: GenerateUploadUrlResult;
+  list: ListedVideo[];
+  video: GetVideoResult | null;
+  verification: VerifyUserDocumentsResult | null;
 };
 
 export type StorageDependencies = {

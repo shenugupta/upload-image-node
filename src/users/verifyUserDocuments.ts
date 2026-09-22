@@ -6,6 +6,7 @@ import type {
   RekognitionPort,
   UserFile,
   UserStore,
+  VerifyDocumentsInput,
   VerifyUserDocumentsResult
 } from "../types";
 import type { StoragePort } from "../ports/StoragePort";
@@ -51,11 +52,7 @@ export async function verifyUserDocuments({
   users: UserStore;
   storage: StoragePort;
   rekognition: RekognitionPort;
-  input?: {
-    userId?: string | number;
-    email?: string;
-    doctype?: string;
-  };
+  input?: VerifyDocumentsInput;
 }): Promise<VerifyUserDocumentsResult> {
   const user = await resolveUser(users, input);
   const document = await users.findDocumentForUser(user.id, input.doctype);

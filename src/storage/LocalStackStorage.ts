@@ -12,7 +12,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { AwsErrorName, HttpMethod, Profile } from "../enums";
 import { StoragePort } from "../ports/StoragePort";
 import { NotFoundError, errorMessage, isNamedError } from "../errors";
-import type { ListedObject, UploadUrlResult, VideoResult } from "../types";
+import type { CaughtError, CreateUploadUrlInput, ListedObject, StorageKeyInput, UploadUrlResult, VideoResult } from "../types";
 
 export type S3StorageOptions = {
   s3: S3Client;
@@ -64,7 +64,7 @@ export class LocalStackStorage extends StoragePort {
     return signed.toString();
   }
 
-  isNotFound(error: unknown): boolean {
+  isNotFound(error: CaughtError): boolean {
     if (!isNamedError(error)) {
       return false;
     }
@@ -135,10 +135,7 @@ export class LocalStackStorage extends StoragePort {
   async createUploadUrl({
     key,
     contentType
-  }: {
-    key: string;
-    contentType: string;
-  }): Promise<UploadUrlResult> {
+  }: CreateUploadUrlInput): Promise<UploadUrlResult> {
     await this.ready();
 
     const url = await getSignedUrl(
@@ -159,7 +156,7 @@ export class LocalStackStorage extends StoragePort {
     };
   }
 
-  async getVideo({ key }: { key: string }): Promise<VideoResult> {
+  async getVideo({ key }: StorageKeyInput): Promise<VideoResult> {
     await this.ready();
 
     let metadata;
@@ -213,7 +210,7 @@ export class LocalStackStorage extends StoragePort {
     }));
   }
 
-  async getObjectBytes({ key }: { key: string }): Promise<Buffer> {
+  async getObjectBytes({ key }: StorageKeyInput): Promise<Buffer> {
     await this.ready();
 
     try {

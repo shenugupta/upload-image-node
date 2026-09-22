@@ -2,7 +2,7 @@ import { DocType, Profile } from "../enums";
 import { HttpError } from "../errors";
 import { fileTypeFromUpload } from "./fileTypeFromUpload";
 import { resolveUser } from "./resolveUser";
-import type { UserFile, UserStore } from "../types";
+import type { RecordUserFileInput, UserFile, UserStore } from "../types";
 
 function normalizeDoctype(doctype: string | undefined, profile?: string): string {
   const trimmed = String(doctype || "").trim();
@@ -27,14 +27,7 @@ export async function recordUserFile(
     contentType,
     fileurl,
     doctype
-  }: {
-    userId?: string | number;
-    email?: string;
-    fileName?: string;
-    contentType?: string;
-    fileurl?: string;
-    doctype?: string;
-  }
+  }: RecordUserFileInput
 ): Promise<UserFile> {
   const user = await resolveUser(users, { userId, email });
 

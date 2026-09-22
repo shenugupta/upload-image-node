@@ -1,6 +1,6 @@
 import { Profile } from "../enums";
 import { HttpError, NotFoundError } from "../errors";
-import type { UserProfile, UserStore } from "../types";
+import type { ResolveUserInput, UserProfile, UserStore } from "../types";
 
 export function normalizeEmail(email?: string): string {
   return String(email || "").trim().toLowerCase();
@@ -8,7 +8,7 @@ export function normalizeEmail(email?: string): string {
 
 export async function resolveUser(
   users: UserStore,
-  { userId, email }: { userId?: string | number; email?: string }
+  { userId, email }: ResolveUserInput
 ): Promise<UserProfile> {
   if (userId != null && userId !== "") {
     const id = Number(userId);

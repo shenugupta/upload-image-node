@@ -15,15 +15,30 @@ import { recordUserFile } from "./users/recordUserFile";
 import { MockStorage } from "./storage/MockStorage";
 import type {
   AppConfig,
+  CaughtError,
   GenerateUploadUrlResult,
+  GetVideoResult,
   LambdaInvoker,
+  LambdaPayload,
+  ListedVideo,
+  QueryParamValue,
+  SignInInput,
+  SignUpInput,
   UrlBuilder,
   UserStore,
-  VideoResult
+  VerifyUserDocumentsResult
 } from "./types";
 import type { StepFunctionsRunner } from "./stepfunctions/StepFunctionsRunner";
 
-function asString(value: unknown): string | undefined {
+function asRequestBuffer(body: Buffer | string | undefined): Buffer {
+  if (Buffer.isBuffer(body)) {
+    return body;
+  }
+
+  return Buffer.from(body || []);
+}
+
+function asString(value: QueryParamValue): string | undefined {
   if (typeof value === "string") {
     return value;
   }
@@ -35,7 +50,7 @@ function asString(value: unknown): string | undefined {
   return undefined;
 }
 
-function fromLambdaError(error: unknown): Error {
+function fromLambdaError(error: CaughtError): Error {
   if (error instanceof HttpError) {
     return error;
   }
@@ -59,7 +74,7 @@ function fromLambdaError(error: unknown): Error {
 function sendError(
   res: Response,
   storage: StoragePort,
-  error: unknown,
+  error: CaughtError,
   fallbackMessage: string
 ): Response {
   const mapped = fromLambdaError(error);
@@ -100,7 +115,7 @@ function mountDirectUploadRoutes(
         await directUpload.putObject({
           key,
           contentType: req.headers["content-type"],
-          body: Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []),
+          body: asRequestBuffer(req.body),
           expires: asString(req.query.expires),
           signature: asString(req.query.signature),
           method: asString(req.query.method) || HttpMethod.Put
@@ -194,7 +209,8 @@ export function createApp({
 
   app.post("/upload-url", async (req, res) => {
     try {
-      const { fileName, contentType, userId, email, doctype } = req.body || {};
+      const { fileName, contentType, userId, email, doctype }: LambdaPayload =
+        req.body || {};
 
       if (!fileName || !contentType) {
         return res.status(400).json({
@@ -241,9 +257,10 @@ export function createApp({
         });
       }
 
-      const data = await lambdaInvoker.invoke(LAMBDA_FUNCTIONS.getVideo, {
-        key
-      });
+      const data = await lambdaInvoker.invoke<GetVideoResult>(
+        LAMBDA_FUNCTIONS.getVideo,
+        { key }
+      );
 
       res.json({
         success: true,
@@ -257,7 +274,10 @@ export function createApp({
 
   app.get("/videos", async (_req, res) => {
     try {
-      const files = await lambdaInvoker.invoke(LAMBDA_FUNCTIONS.listVideos, {});
+      const files = await lambdaInvoker.invoke<ListedVideo[]>(
+        LAMBDA_FUNCTIONS.listVideos,
+        {}
+      );
 
       res.json({
         success: true,
@@ -280,7 +300,7 @@ export function createApp({
         });
       }
 
-      const data = await lambdaInvoker.invoke<VideoResult>(
+      const data = await lambdaInvoker.invoke<GetVideoResult>(
         LAMBDA_FUNCTIONS.getVideo,
         { key }
       );
@@ -292,7 +312,8 @@ export function createApp({
 
   app.post("/signup", async (req, res) => {
     try {
-      const data = await signUp(users, req.body || {});
+      const body: SignUpInput = req.body || {};
+      const data = await signUp(users, body);
 
       res.status(201).json({
         success: true,
@@ -305,7 +326,8 @@ export function createApp({
 
   app.post("/signin", async (req, res) => {
     try {
-      const data = await signIn(users, req.body || {});
+      const body: SignInInput = req.body || {};
+      const data = await signIn(users, body);
 
       res.json({
         success: true,
@@ -318,9 +340,10 @@ export function createApp({
 
   app.post("/verify", async (req, res) => {
     try {
-      const result = await lambdaInvoker.invoke(
+      const body: LambdaPayload = req.body || {};
+      const result = await lambdaInvoker.invoke<VerifyUserDocumentsResult>(
         LAMBDA_FUNCTIONS.verifyUserDocuments,
-        req.body || {}
+        body
       );
 
       res.json({
@@ -335,7 +358,8 @@ export function createApp({
 
   app.post("/workflow", async (req, res) => {
     try {
-      const { fileName, contentType, userId, email, doctype } = req.body || {};
+      const { fileName, contentType, userId, email, doctype }: LambdaPayload =
+        req.body || {};
 
       if (!fileName || !contentType) {
         return res.status(400).json({

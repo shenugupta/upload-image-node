@@ -1,10 +1,10 @@
 import { HttpError, NotFoundError } from "../errors";
 import { normalizeEmail } from "./resolveUser";
-import type { UserProfile, UserStore } from "../types";
+import type { SignInInput, UserProfile, UserStore } from "../types";
 
 export async function signIn(
   users: UserStore,
-  { email, phone }: { email?: string; phone?: string }
+  { email, phone }: SignInInput
 ): Promise<UserProfile> {
   const normalizedEmail = normalizeEmail(email);
 

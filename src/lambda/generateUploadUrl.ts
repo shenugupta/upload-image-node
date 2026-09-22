@@ -1,10 +1,7 @@
 import { getLambdaRuntime } from "./runtime";
-import type { GenerateUploadUrlResult, LambdaHandler } from "../types";
+import type { GenerateUploadUrlResult, LambdaHandler, LambdaPayload } from "../types";
 
-export const handler: LambdaHandler<
-  { fileName?: string; contentType?: string },
-  GenerateUploadUrlResult
-> = async (event, context) => {
+export const handler: LambdaHandler<LambdaPayload, GenerateUploadUrlResult> = async (event, context) => {
   console.log("[aws-lambda] generateUploadUrl invoked", {
     profile: process.env.PROFILE,
     functionName: context.functionName,

@@ -1,6 +1,6 @@
 import { InvokeCommand, type LambdaClient } from "@aws-sdk/client-lambda";
 import { LambdaInvokerKind } from "../enums";
-import type { LambdaInvoker, Profile } from "../types";
+import type { LambdaErrorPayload, LambdaInvoker, LambdaPayload, LambdaResult, Profile } from "../types";
 
 export class LocalStackLambdaInvoker implements LambdaInvoker {
   lambda: LambdaClient;
@@ -11,9 +11,9 @@ export class LocalStackLambdaInvoker implements LambdaInvoker {
     this.profile = profile;
   }
 
-  async invoke<TResult = unknown>(
+  async invoke<TResult extends LambdaResult = LambdaResult>(
     functionName: string,
-    payload: Record<string, unknown>
+    payload: LambdaPayload
   ): Promise<TResult> {
     console.log("[aws-lambda] Invoke", {
       profile: this.profile,
@@ -31,7 +31,7 @@ export class LocalStackLambdaInvoker implements LambdaInvoker {
 
     const result = JSON.parse(
       Buffer.from(response.Payload || []).toString() || "null"
-    ) as TResult & { errorMessage?: string; errorType?: string };
+    ) as TResult & LambdaErrorPayload;
 
     if (response.FunctionError) {
       console.log("[aws-lambda] InvokeError", {

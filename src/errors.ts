@@ -1,3 +1,5 @@
+import type { CaughtError, ErrorLike } from "./types";
+
 export class HttpError extends Error {
   status: number;
 
@@ -15,24 +17,42 @@ export class NotFoundError extends HttpError {
   }
 }
 
-export function errorMessage(error: unknown): string {
+export function errorMessage(error: CaughtError): string {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  if (typeof error === "object" && error !== null && "code" in error) {
-    return String((error as { code: unknown }).code);
+  if (typeof error === "object" && error !== null && "code" in error && error.code != null) {
+    return String(error.code);
   }
 
-  return String(error);
+  if (typeof error === "object" && error !== null && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return String(error ?? "");
 }
 
 export function isNamedError(
-  error: unknown
-): error is { name: string; message: string; $metadata?: { httpStatusCode?: number } } {
-  return typeof error === "object" && error !== null && "name" in error;
+  error: CaughtError
+): error is ErrorLike & { name: string; message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    typeof error.name === "string"
+  );
 }
 
-export function isPgError(error: unknown): error is { code: string } {
-  return typeof error === "object" && error !== null && "code" in error;
+export function isPgError(error: CaughtError): error is ErrorLike & { code: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  );
 }

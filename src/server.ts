@@ -5,6 +5,7 @@ import { createContainer } from "./container";
 import { createApp } from "./app";
 import { MockStorage } from "./storage/MockStorage";
 import { errorMessage } from "./errors";
+import type { CaughtError } from "./types";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -41,7 +42,7 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((error: unknown) => {
+main().catch((error: CaughtError) => {
   console.error("Failed to start server:", errorMessage(error) || error);
 
   if (String(errorMessage(error) || error).includes("ECONNREFUSED")) {

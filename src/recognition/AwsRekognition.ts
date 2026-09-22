@@ -5,7 +5,7 @@ import {
 } from "@aws-sdk/client-rekognition";
 import { errorMessage } from "../errors";
 import { FileType } from "../enums";
-import type { FaceMatchImage, FaceMatchResult, RekognitionPort } from "../types";
+import type { FaceMatchImage, FaceMatchInput, FaceMatchResult, RekognitionPort } from "../types";
 
 const MATCH_SIMILARITY_THRESHOLD = 99;
 
@@ -48,10 +48,7 @@ export class AwsRekognition implements RekognitionPort {
   async verifyFaceMatch({
     document,
     selfie
-  }: {
-    document?: FaceMatchImage;
-    selfie?: FaceMatchImage;
-  } = {}): Promise<FaceMatchResult> {
+  }: FaceMatchInput = {}): Promise<FaceMatchResult> {
     console.log("[rekognition] compare selfie with document", {
       document: document?.fileurl,
       selfie: selfie?.fileurl,

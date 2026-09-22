@@ -1,13 +1,10 @@
-import type { FaceMatchImage, FaceMatchResult, RekognitionPort } from "../types";
+import type { FaceMatchInput, FaceMatchResult, RekognitionPort } from "../types";
 
 export class MockRekognition implements RekognitionPort {
   async verifyFaceMatch({
     document,
     selfie
-  }: {
-    document?: FaceMatchImage;
-    selfie?: FaceMatchImage;
-  } = {}): Promise<FaceMatchResult> {
+  }: FaceMatchInput = {}): Promise<FaceMatchResult> {
     console.log("[rekognition] mock face match", {
       document: document?.fileurl,
       selfie: selfie?.fileurl

@@ -1,10 +1,7 @@
 import { getLambdaRuntime } from "./runtime";
-import type { LambdaHandler, ListedObject } from "../types";
+import type { LambdaHandler, LambdaPayload, ListedVideo } from "../types";
 
-export const handler: LambdaHandler<
-  Record<string, unknown>,
-  Array<ListedObject & { openUrl: string; getVideoUrl: string }>
-> = async (event, context) => {
+export const handler: LambdaHandler<LambdaPayload, ListedVideo[]> = async (event, context) => {
   console.log("[aws-lambda] listVideos invoked", {
     profile: process.env.PROFILE,
     functionName: context.functionName,

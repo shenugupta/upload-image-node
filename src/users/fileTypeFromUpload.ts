@@ -1,6 +1,7 @@
 import path from "path";
 import { HttpError } from "../errors";
 import { FileExtension, FileType, MimeType } from "../enums";
+import type { FileUploadMeta } from "../types";
 
 export const ALLOWED_FILE_TYPES: FileType[] = [
   FileType.Png,
@@ -19,10 +20,7 @@ const VIDEO_EXTENSIONS = [
 export function fileTypeFromUpload({
   fileName,
   contentType
-}: {
-  fileName?: string;
-  contentType?: string;
-}): FileType {
+}: FileUploadMeta): FileType {
   const ext = path.extname(String(fileName || "")).toLowerCase().replace(".", "");
   const type = String(contentType || "").toLowerCase();
 

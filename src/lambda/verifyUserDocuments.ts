@@ -1,9 +1,9 @@
 import { getLambdaRuntime } from "./runtime";
 import { verifyUserDocuments } from "../users/verifyUserDocuments";
-import type { LambdaHandler, VerifyUserDocumentsResult } from "../types";
+import type { LambdaHandler, LambdaPayload, VerifyUserDocumentsResult } from "../types";
 
 export const handler: LambdaHandler<
-  { userId?: string | number; email?: string; doctype?: string },
+  LambdaPayload,
   VerifyUserDocumentsResult
 > = async (event, context) => {
   console.log("[aws-lambda] verifyUserDocuments invoked", {

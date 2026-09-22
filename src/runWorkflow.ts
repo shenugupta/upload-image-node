@@ -2,6 +2,7 @@ import "dotenv/config";
 import { loadConfig } from "./config";
 import { createContainer } from "./container";
 import { errorMessage } from "./errors";
+import type { CaughtError } from "./types";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -27,7 +28,7 @@ async function main(): Promise<void> {
   console.log("[workflow] finished", JSON.stringify(result, null, 2));
 }
 
-main().catch((error: unknown) => {
+main().catch((error: CaughtError) => {
   console.error("[workflow] failed", errorMessage(error) || error);
   process.exit(1);
 });
