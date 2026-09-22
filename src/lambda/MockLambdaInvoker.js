@@ -4,7 +4,8 @@ class MockLambdaInvoker {
     this.handlers = {
       generateUploadUrl: require("./generateUploadUrl").handler,
       listVideos: require("./listVideos").handler,
-      getVideo: require("./getVideo").handler
+      getVideo: require("./getVideo").handler,
+      verifyUserDocuments: require("./verifyUserDocuments").handler
     };
   }
 

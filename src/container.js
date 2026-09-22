@@ -46,13 +46,13 @@ async function createLocalstackDependencies(config) {
 async function createContainer(config) {
   let dependencies;
 
-  if (process.env.PROFILE === "mock") {
+  if (process.env.PROFILE === "mock" || process.env.PROFILE === "aws") {
     dependencies = await createMockDependencies(config);
   } else if (process.env.PROFILE === "localstack") {
     dependencies = await createLocalstackDependencies(config);
   } else {
     throw new Error(
-      `Unknown PROFILE "${process.env.PROFILE || ""}". Use npm run start:mock or npm run start:localstack`
+      `Unknown PROFILE "${process.env.PROFILE || ""}". Use npm run start:mock, npm run start:localstack, or npm run start:aws`
     );
   }
 

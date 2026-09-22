@@ -31,6 +31,7 @@ class PostgresUserStore {
         filetype TEXT NOT NULL CHECK (filetype IN ('png', 'jpeg', 'video', 'mov')),
         filename TEXT NOT NULL,
         fileurl TEXT NOT NULL,
+        doctype TEXT NOT NULL,
         is_verified BOOLEAN NOT NULL DEFAULT false,
         userid INTEGER NOT NULL REFERENCES "userProfile"(id) ON DELETE CASCADE
       )
@@ -43,6 +44,10 @@ class PostgresUserStore {
     await this.pool.query(`
       ALTER TABLE "userFiles"
       ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT false
+    `);
+
+    await this.pool.query(`
+      ALTER TABLE "userFiles" ADD COLUMN IF NOT EXISTS doctype TEXT
     `);
 
     await this.pool.query(`
@@ -68,13 +73,28 @@ class PostgresUserStore {
     return result.rows[0] || null;
   }
 
-  async createFile({ filename, filetype, fileurl, userid }) {
+  async ensureMockUser() {
+    const email = "mock.user@example.com";
+    const existing = await this.findByEmail(email);
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.create({
+      name: "Mock User",
+      email,
+      phone: "0000000000"
+    });
+  }
+
+  async createFile({ filename, filetype, fileurl, doctype, userid }) {
     try {
       const result = await this.pool.query(
-        `INSERT INTO "userFiles" (filetype, filename, fileurl, userid)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, filetype, filename, fileurl, is_verified, userid`,
-        [filetype, filename, fileurl, userid]
+        `INSERT INTO "userFiles" (filetype, filename, fileurl, doctype, userid)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, filetype, filename, fileurl, doctype, is_verified, userid`,
+        [filetype, filename, fileurl, doctype, userid]
       );
 
       return result.rows[0];
@@ -89,6 +109,65 @@ class PostgresUserStore {
 
       throw error;
     }
+  }
+
+  async markVerified(ids) {
+    if (!ids.length) {
+      return [];
+    }
+
+    const result = await this.pool.query(
+      `UPDATE "userFiles"
+       SET is_verified = true
+       WHERE id = ANY($1::int[])
+       RETURNING id, filename, fileurl, filetype, doctype, is_verified, userid`,
+      [ids]
+    );
+
+    return result.rows;
+  }
+
+  async findDocumentForUser(userid, doctype) {
+    const requested = String(doctype || "").trim().toUpperCase();
+    const params = [userid];
+    let doctypeFilter = `UPPER(doctype) IN ('PAN', 'AADHAR', 'AADHAAR')`;
+
+    if (requested === "PAN") {
+      doctypeFilter = `UPPER(doctype) = 'PAN'`;
+    } else if (requested === "AADHAR" || requested === "AADHAAR") {
+      doctypeFilter = `UPPER(doctype) IN ('AADHAR', 'AADHAAR')`;
+    }
+
+    const result = await this.pool.query(
+      `SELECT id, filename, fileurl, filetype, doctype, userid, is_verified
+       FROM "userFiles"
+       WHERE userid = $1
+         AND ${doctypeFilter}
+         AND fileurl IS NOT NULL
+         AND fileurl <> ''
+       ORDER BY CASE WHEN is_verified THEN 1 ELSE 0 END, id DESC
+       LIMIT 1`,
+      params
+    );
+
+    return result.rows[0] || null;
+  }
+
+  async findSelfieForUser(userid) {
+    const result = await this.pool.query(
+      `SELECT id, filename, fileurl, filetype, doctype, userid, is_verified
+       FROM "userFiles"
+       WHERE userid = $1
+         AND UPPER(doctype) = 'SELFIE'
+         AND filetype IN ('png', 'jpeg')
+         AND fileurl IS NOT NULL
+         AND fileurl <> ''
+       ORDER BY id DESC
+       LIMIT 1`,
+      [userid]
+    );
+
+    return result.rows[0] || null;
   }
 
   async create({ name, email, phone }) {

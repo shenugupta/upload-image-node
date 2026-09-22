@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS "userFiles" (
   filetype TEXT NOT NULL CHECK (filetype IN ('png', 'jpeg', 'video', 'mov')),
   filename TEXT NOT NULL,
   fileurl TEXT NOT NULL,
+  doctype TEXT NOT NULL,
   is_verified BOOLEAN NOT NULL DEFAULT false,
   userid INTEGER NOT NULL REFERENCES "userProfile"(id) ON DELETE CASCADE
 );

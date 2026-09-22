@@ -148,6 +148,26 @@ class LocalStackStorage extends StoragePort {
     }));
   }
 
+  async getObjectBytes({ key }) {
+    await this.ensureBucket();
+
+    try {
+      const object = await this.s3.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key
+        })
+      );
+
+      return Buffer.from(await object.Body.transformToByteArray());
+    } catch (error) {
+      if (this.isNotFound(error)) {
+        throw new NotFoundError();
+      }
+      throw error;
+    }
+  }
+
   describe() {
     return [
       `LocalStack S3 endpoint: ${this.endpoint}`,

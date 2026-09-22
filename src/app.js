@@ -136,15 +136,21 @@ function createApp({
       port: config.port,
       bucket: storage.bucket,
       lambda:
-        storage.profile === "mock"
-          ? "aws-lambda-handler"
-          : "localstack-lambda"
+        storage.profile === "localstack"
+          ? "localstack-lambda"
+          : "aws-lambda-handler",
+      rekognition:
+        config.profile === "aws"
+          ? "aws-compare-faces"
+          : config.profile === "localstack"
+            ? "localstack-compare-faces"
+            : "mock-compare-faces"
     });
   });
 
   app.post("/upload-url", async (req, res) => {
     try {
-      const { fileName, contentType, userId, email } = req.body || {};
+      const { fileName, contentType, userId, email, doctype } = req.body || {};
 
       if (!fileName || !contentType) {
         return res.status(400).json({
@@ -163,7 +169,8 @@ function createApp({
         email,
         fileName,
         contentType,
-        fileurl: data.openUrl
+        fileurl: data.openUrl,
+        doctype
       });
 
       res.json({
@@ -264,9 +271,26 @@ function createApp({
     }
   });
 
+  app.post("/verify", async (req, res) => {
+    try {
+      const result = await lambdaInvoker.invoke(
+        LAMBDA_FUNCTIONS.verifyUserDocuments,
+        req.body || {}
+      );
+
+      res.json({
+        success: true,
+        profile: storage.profile,
+        data: result
+      });
+    } catch (error) {
+      sendError(res, storage, error, "Failed to verify selfie with document");
+    }
+  });
+
   app.post("/workflow", async (req, res) => {
     try {
-      const { fileName, contentType } = req.body;
+      const { fileName, contentType, userId, email, doctype } = req.body || {};
 
       if (!fileName || !contentType) {
         return res.status(400).json({
@@ -277,7 +301,10 @@ function createApp({
 
       const result = await stepFunctions.startExecution({
         fileName,
-        contentType
+        contentType,
+        userId,
+        email,
+        doctype
       });
 
       res.json({

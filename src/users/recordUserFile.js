@@ -1,41 +1,36 @@
-const { HttpError, NotFoundError } = require("../errors");
+const { HttpError } = require("../errors");
 const { fileTypeFromUpload } = require("./fileTypeFromUpload");
+const { resolveUser } = require("./resolveUser");
 
-function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
+function normalizeDoctype(doctype, profile) {
+  const trimmed = String(doctype || "").trim();
+
+  if (trimmed) {
+    return trimmed;
+  }
+
+  if (profile === "mock") {
+    return "OTHER";
+  }
+
+  throw new HttpError(400, "doctype is required");
 }
 
-async function recordUserFile(users, { userId, email, fileName, contentType, fileurl }) {
-  let user = null;
-
-  if (userId != null && userId !== "") {
-    const id = Number(userId);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      throw new HttpError(400, "userId is invalid");
-    }
-
-    user = await users.findById(id);
-  } else if (email) {
-    user = await users.findByEmail(normalizeEmail(email));
-  } else {
-    throw new HttpError(400, "userId or email is required");
-  }
-
-  if (!user) {
-    throw new NotFoundError("User not found");
-  }
+async function recordUserFile(users, { userId, email, fileName, contentType, fileurl, doctype }) {
+  const user = await resolveUser(users, { userId, email });
 
   if (!fileurl) {
     throw new HttpError(400, "fileurl is required");
   }
 
+  const trimmedDoctype = normalizeDoctype(doctype, process.env.PROFILE);
   const filetype = fileTypeFromUpload({ fileName, contentType });
 
   return users.createFile({
     filename: fileName,
     filetype,
     fileurl,
+    doctype: trimmedDoctype,
     userid: user.id
   });
 }

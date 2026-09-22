@@ -46,6 +46,7 @@ class StepFunctionsRunner {
     });
 
     let video = null;
+    let verification = null;
     try {
       console.log("[stepfunctions] TaskStateEntered", {
         profile: this.profile,
@@ -68,6 +69,37 @@ class StepFunctionsRunner {
       });
       console.log("[stepfunctions] Catch", {
         profile: this.profile,
+        next: "VerifyUserDocuments"
+      });
+    }
+
+    try {
+      console.log("[stepfunctions] TaskStateEntered", {
+        profile: this.profile,
+        state: "VerifyUserDocuments",
+        resource: LAMBDA_FUNCTIONS.verifyUserDocuments
+      });
+      verification = await this.lambdaInvoker.invoke(
+        LAMBDA_FUNCTIONS.verifyUserDocuments,
+        {
+          userId: input.userId,
+          email: input.email,
+          doctype: input.doctype
+        }
+      );
+      console.log("[stepfunctions] TaskStateExited", {
+        profile: this.profile,
+        state: "VerifyUserDocuments",
+        output: verification
+      });
+    } catch (error) {
+      console.log("[stepfunctions] TaskFailed", {
+        profile: this.profile,
+        state: "VerifyUserDocuments",
+        error: error.message
+      });
+      console.log("[stepfunctions] Catch", {
+        profile: this.profile,
         next: "Complete"
       });
     }
@@ -76,7 +108,8 @@ class StepFunctionsRunner {
       profile: this.profile,
       upload,
       list,
-      video
+      video,
+      verification
     };
 
     console.log("[stepfunctions] ExecutionSucceeded", {

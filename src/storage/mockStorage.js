@@ -152,6 +152,16 @@ class MockStorage extends StoragePort {
     };
   }
 
+  async getObjectBytes({ key }) {
+    const filePath = this.filePathFor(key);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundError();
+    }
+
+    return fs.readFileSync(filePath);
+  }
+
   describe() {
     return [`Mock upload directory: ${this.uploadDir}`];
   }

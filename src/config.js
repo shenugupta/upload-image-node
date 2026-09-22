@@ -3,9 +3,9 @@ const path = require("path");
 function loadConfig(env = process.env) {
   const profile = env.PROFILE;
 
-  if (profile !== "mock" && profile !== "localstack") {
+  if (profile !== "mock" && profile !== "localstack" && profile !== "aws") {
     throw new Error(
-      `Unknown PROFILE "${profile || ""}". Use npm run start:mock or npm run start:localstack`
+      `Unknown PROFILE "${profile || ""}". Use npm run start:mock, npm run start:localstack, or npm run start:aws`
     );
   }
 
@@ -32,6 +32,11 @@ function loadConfig(env = process.env) {
       accessKeyId: env.AWS_ACCESS_KEY_ID || "test",
       secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "test",
       publicEndpoint: env.S3_PUBLIC_ENDPOINT || "http://localhost:4566"
+    },
+    aws: {
+      region: env.AWS_REGION || "us-east-1",
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY
     },
     postgres: {
       host: env.PGHOST || "localhost",

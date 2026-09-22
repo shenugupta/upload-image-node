@@ -6,12 +6,16 @@ const { createUrlBuilder } = require("./http/urlBuilder");
 function createStorageDependencies(config) {
   const urls = createUrlBuilder(config.publicBaseUrl);
 
-  if (process.env.PROFILE === "mock") {
+  if (process.env.PROFILE === "mock" || process.env.PROFILE === "aws") {
     const storage = new MockStorage({
       ...config.mock,
       expiresIn: config.expiresIn,
       publicBaseUrl: config.publicBaseUrl
     });
+
+    if (process.env.PROFILE === "aws") {
+      storage.profile = "aws";
+    }
 
     return {
       storage,
@@ -37,7 +41,7 @@ function createStorageDependencies(config) {
   }
 
   throw new Error(
-    `Unknown PROFILE "${process.env.PROFILE || ""}". Use npm run start:mock or npm run start:localstack`
+      `Unknown PROFILE "${process.env.PROFILE || ""}". Use npm run start:mock, npm run start:localstack, or npm run start:aws`
   );
 }
 

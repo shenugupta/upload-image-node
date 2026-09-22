@@ -29,6 +29,10 @@ class StoragePort {
     return this.getVideo({ key });
   }
 
+  async getObjectBytes() {
+    throw new Error("getObjectBytes() must be implemented");
+  }
+
   describe() {
     return [];
   }

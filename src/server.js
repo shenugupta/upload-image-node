@@ -24,11 +24,13 @@ async function main() {
 
   app.listen(config.port, () => {
     console.log(`Server running at http://localhost:${config.port}`);
-    console.log(`Profile: ${storage.profile}`);
+    console.log(`Profile: ${config.profile}`);
     console.log(
-      storage.profile === "mock"
-        ? "Lambda: local AWS handler invoke (generateUploadUrl, listVideos, getVideo)"
-        : "Lambda: LocalStack AWS Lambda invoke (generateUploadUrl, listVideos, getVideo)"
+      config.profile === "mock"
+        ? "Rekognition: mock face match"
+        : config.profile === "aws"
+          ? "Rekognition: real AWS CompareFaces"
+          : "Rekognition: LocalStack CompareFaces"
     );
     storage.describe().forEach((line) => console.log(line));
     console.log(

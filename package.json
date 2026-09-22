@@ -7,6 +7,7 @@
     "start": "PROFILE=mock node src/server.js",
     "start:mock": "PROFILE=mock node src/server.js",
     "start:localstack": "PROFILE=localstack node src/server.js",
+    "start:aws": "PROFILE=aws node src/server.js",
     "dev": "PROFILE=mock nodemon src/server.js",
     "dev:mock": "PROFILE=mock nodemon src/server.js",
     "dev:localstack": "PROFILE=localstack nodemon src/server.js",
@@ -14,12 +15,14 @@
     "postgres": "docker compose up -d postgres",
     "workflow:mock": "PROFILE=mock node src/runWorkflow.js",
     "workflow:localstack": "PROFILE=localstack node src/runWorkflow.js",
+    "workflow:aws": "PROFILE=aws node src/runWorkflow.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.1134.0",
+    "@aws-sdk/client-rekognition": "^3.1136.0",
     "@aws-sdk/client-s3": "^3.1132.0",
     "@aws-sdk/credential-providers": "^3.1132.0",
     "@aws-sdk/s3-request-presigner": "^3.1132.0",

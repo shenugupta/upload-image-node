@@ -22,7 +22,8 @@ const PROJECT_ROOT = path.join(__dirname, "../..");
 const HANDLERS = {
   [LAMBDA_FUNCTIONS.generateUploadUrl]: "src/lambda/generateUploadUrl.handler",
   [LAMBDA_FUNCTIONS.listVideos]: "src/lambda/listVideos.handler",
-  [LAMBDA_FUNCTIONS.getVideo]: "src/lambda/getVideo.handler"
+  [LAMBDA_FUNCTIONS.getVideo]: "src/lambda/getVideo.handler",
+  [LAMBDA_FUNCTIONS.verifyUserDocuments]: "src/lambda/verifyUserDocuments.handler"
 };
 
 function buildZip() {
@@ -125,7 +126,15 @@ async function ensureLocalStackLambdas({ lambda, config }) {
       AWS_ACCESS_KEY_ID: config.localstack.accessKeyId,
       AWS_SECRET_ACCESS_KEY: config.localstack.secretAccessKey,
       S3_BUCKET: config.localstack.bucket,
-      S3_PUBLIC_ENDPOINT: config.localstack.publicEndpoint
+      S3_PUBLIC_ENDPOINT: config.localstack.publicEndpoint,
+      PGHOST:
+        config.postgres.host === "localhost"
+          ? "host.docker.internal"
+          : config.postgres.host,
+      PGPORT: String(config.postgres.port),
+      PGUSER: config.postgres.user,
+      PGPASSWORD: config.postgres.password,
+      PGDATABASE: config.postgres.database
     }
   };
 

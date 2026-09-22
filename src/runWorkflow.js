@@ -11,7 +11,10 @@ async function main() {
 
   const input = {
     fileName: process.argv[2] || "workflow-demo.mov",
-    contentType: process.argv[3] || "video/quicktime"
+    contentType: process.argv[3] || "video/quicktime",
+    userId: process.argv[4] || process.env.USER_ID,
+    email: process.env.EMAIL,
+    doctype: process.argv[5] || process.env.DOCTYPE
   };
 
   console.log("[workflow] starting", {

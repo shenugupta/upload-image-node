@@ -19,6 +19,18 @@
         {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.getVideoError",
+          "Next": "VerifyUserDocuments"
+        }
+      ],
+      "Next": "VerifyUserDocuments"
+    },
+    "VerifyUserDocuments": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:000000000000:function:verifyUserDocuments",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.verifyError",
           "Next": "Complete"
         }
       ],

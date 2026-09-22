@@ -1,7 +1,8 @@
 const LAMBDA_FUNCTIONS = {
   generateUploadUrl: "generateUploadUrl",
   listVideos: "listVideos",
-  getVideo: "getVideo"
+  getVideo: "getVideo",
+  verifyUserDocuments: "verifyUserDocuments"
 };
 
 module.exports = {
