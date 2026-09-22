@@ -1,5 +1,7 @@
 const { CompareFacesCommand } = require("@aws-sdk/client-rekognition");
 
+const MATCH_SIMILARITY_THRESHOLD = 99;
+
 class AwsRekognition {
   constructor({ client, localStack = false }) {
     this.client = client;
@@ -67,13 +69,13 @@ class AwsRekognition {
         new CompareFacesCommand({
           SourceImage: sourceImage,
           TargetImage: targetImage,
-          SimilarityThreshold: 80
+          SimilarityThreshold: MATCH_SIMILARITY_THRESHOLD
         })
       );
 
       const similarity = compared.FaceMatches?.[0]?.Similarity || 0;
 
-      if (similarity >= 80) {
+      if (similarity >= MATCH_SIMILARITY_THRESHOLD) {
         return {
           verified: true,
           similarity,
