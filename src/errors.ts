@@ -1,9 +1,10 @@
+import { HttpStatus, type PostgresErrorCode } from "./enums";
 import type { CaughtError, ErrorLike } from "./types";
 
 export class HttpError extends Error {
-  status: number;
+  status: HttpStatus;
 
-  constructor(status: number, message: string) {
+  constructor(status: HttpStatus, message: string) {
     super(message);
     this.name = "HttpError";
     this.status = status;
@@ -12,7 +13,7 @@ export class HttpError extends Error {
 
 export class NotFoundError extends HttpError {
   constructor(message = "Video not found") {
-    super(404, message);
+    super(HttpStatus.NotFound, message);
     this.name = "NotFoundError";
   }
 }
@@ -48,7 +49,9 @@ export function isNamedError(
   );
 }
 
-export function isPgError(error: CaughtError): error is ErrorLike & { code: string } {
+export function isPgError(
+  error: CaughtError
+): error is ErrorLike & { code: PostgresErrorCode | string } {
   return (
     typeof error === "object" &&
     error !== null &&

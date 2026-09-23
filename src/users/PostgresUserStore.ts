@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { DocType, FileType } from "../enums";
+import { DocType, FileType, HttpStatus, PostgresErrorCode } from "../enums";
 import { HttpError, NotFoundError, isPgError } from "../errors";
 import type { CreateFileInput, CreateUserInput, UserFile, UserProfile, UserStore } from "../types";
 
@@ -110,13 +110,13 @@ export class PostgresUserStore implements UserStore {
 
       return result.rows[0];
     } catch (error) {
-      if (isPgError(error) && error.code === "23503") {
+      if (isPgError(error) && error.code === PostgresErrorCode.ForeignKeyViolation) {
         throw new NotFoundError("User not found");
       }
 
-      if (isPgError(error) && error.code === "23514") {
+      if (isPgError(error) && error.code === PostgresErrorCode.CheckViolation) {
         throw new HttpError(
-          400,
+          HttpStatus.BadRequest,
           `filetype must be ${FileType.Png}, ${FileType.Jpeg}, ${FileType.Video}, or ${FileType.Mov}`
         );
       }
@@ -203,8 +203,8 @@ export class PostgresUserStore implements UserStore {
 
       return result.rows[0];
     } catch (error) {
-      if (isPgError(error) && error.code === "23505") {
-        throw new HttpError(409, "Email already exists");
+      if (isPgError(error) && error.code === PostgresErrorCode.UniqueViolation) {
+        throw new HttpError(HttpStatus.Conflict, "Email already exists");
       }
 
       throw error;

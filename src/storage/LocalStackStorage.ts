@@ -9,7 +9,7 @@ import {
   type S3Client
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { AwsErrorName, HttpMethod, Profile } from "../enums";
+import { AwsErrorName, HttpMethod, HttpStatus, Profile } from "../enums";
 import { StoragePort } from "../ports/StoragePort";
 import { NotFoundError, errorMessage, isNamedError } from "../errors";
 import type { CaughtError, CreateUploadUrlInput, ListedObject, StorageKeyInput, UploadUrlResult, VideoResult } from "../types";
@@ -72,7 +72,7 @@ export class LocalStackStorage extends StoragePort {
     return (
       error.name === AwsErrorName.NotFound ||
       error.name === AwsErrorName.NoSuchKey ||
-      error.$metadata?.httpStatusCode === 404
+      error.$metadata?.httpStatusCode === HttpStatus.NotFound
     );
   }
 

@@ -5,7 +5,7 @@ import express, {
 } from "express";
 import cors from "cors";
 import path from "path";
-import { HttpMethod, LambdaInvokerKind, Profile, RekognitionMode } from "./enums";
+import { HttpMethod, HttpStatus, LambdaInvokerKind, Profile, RekognitionMode } from "./enums";
 import { StoragePort } from "./ports/StoragePort";
 import { HttpError, NotFoundError, errorMessage } from "./errors";
 import { LAMBDA_FUNCTIONS } from "./lambda/functionNames";
@@ -65,7 +65,7 @@ function fromLambdaError(error: CaughtError): Error {
     message === "fileName and contentType are required" ||
     message === "key is required"
   ) {
-    return new HttpError(400, message);
+    return new HttpError(HttpStatus.BadRequest, message);
   }
 
   return error instanceof Error ? error : new Error(message);
@@ -80,14 +80,14 @@ function sendError(
   const mapped = fromLambdaError(error);
 
   if (mapped instanceof NotFoundError) {
-    return res.status(404).json({
+    return res.status(HttpStatus.NotFound).json({
       success: false,
       profile: storage.profile,
       message: mapped.message
     });
   }
 
-  const status = mapped instanceof HttpError ? mapped.status : 500;
+  const status = mapped instanceof HttpError ? mapped.status : HttpStatus.InternalServerError;
 
   return res.status(status).json({
     success: false,
@@ -213,7 +213,7 @@ export function createApp({
         req.body || {};
 
       if (!fileName || !contentType) {
-        return res.status(400).json({
+        return res.status(HttpStatus.BadRequest).json({
           success: false,
           message: "fileName and contentType are required"
         });
@@ -251,7 +251,7 @@ export function createApp({
       const key = asString(req.query.key);
 
       if (!key) {
-        return res.status(400).json({
+        return res.status(HttpStatus.BadRequest).json({
           success: false,
           message: "key is required"
         });
@@ -294,7 +294,7 @@ export function createApp({
       const key = asString(req.query.key);
 
       if (!key) {
-        return res.status(400).json({
+        return res.status(HttpStatus.BadRequest).json({
           success: false,
           message: "key is required"
         });
@@ -315,7 +315,7 @@ export function createApp({
       const body: SignUpInput = req.body || {};
       const data = await signUp(users, body);
 
-      res.status(201).json({
+      res.status(HttpStatus.Created).json({
         success: true,
         data
       });
@@ -362,7 +362,7 @@ export function createApp({
         req.body || {};
 
       if (!fileName || !contentType) {
-        return res.status(400).json({
+        return res.status(HttpStatus.BadRequest).json({
           success: false,
           message: "fileName and contentType are required"
         });

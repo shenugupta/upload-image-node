@@ -1,4 +1,4 @@
-import { Profile } from "../enums";
+import { HttpStatus, Profile } from "../enums";
 import { HttpError, NotFoundError } from "../errors";
 import type { ResolveUserInput, UserProfile, UserStore } from "../types";
 
@@ -14,7 +14,7 @@ export async function resolveUser(
     const id = Number(userId);
 
     if (!Number.isInteger(id) || id <= 0) {
-      throw new HttpError(400, "userId is invalid");
+      throw new HttpError(HttpStatus.BadRequest, "userId is invalid");
     }
 
     const user = await users.findById(id);
@@ -40,5 +40,5 @@ export async function resolveUser(
     return users.ensureMockUser();
   }
 
-  throw new HttpError(400, "userId or email is required");
+  throw new HttpError(HttpStatus.BadRequest, "userId or email is required");
 }

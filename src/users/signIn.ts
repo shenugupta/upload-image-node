@@ -1,3 +1,4 @@
+import { HttpStatus } from "../enums";
 import { HttpError, NotFoundError } from "../errors";
 import { normalizeEmail } from "./resolveUser";
 import type { SignInInput, UserProfile, UserStore } from "../types";
@@ -9,7 +10,7 @@ export async function signIn(
   const normalizedEmail = normalizeEmail(email);
 
   if (!normalizedEmail) {
-    throw new HttpError(400, "email is required");
+    throw new HttpError(HttpStatus.BadRequest, "email is required");
   }
 
   const user = await users.findByEmail(normalizedEmail);
@@ -19,7 +20,7 @@ export async function signIn(
   }
 
   if (phone && user.phone && String(phone).trim() !== user.phone) {
-    throw new HttpError(401, "Phone does not match");
+    throw new HttpError(HttpStatus.Unauthorized, "Phone does not match");
   }
 
   return user;

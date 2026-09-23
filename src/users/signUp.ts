@@ -1,3 +1,4 @@
+import { HttpStatus } from "../enums";
 import { HttpError } from "../errors";
 import { normalizeEmail } from "./resolveUser";
 import type { SignUpInput, UserProfile, UserStore } from "../types";
@@ -11,7 +12,7 @@ export async function signUp(
   const trimmedPhone = phone == null ? null : String(phone).trim() || null;
 
   if (!trimmedName || !normalizedEmail) {
-    throw new HttpError(400, "name and email are required");
+    throw new HttpError(HttpStatus.BadRequest, "name and email are required");
   }
 
   return users.create({

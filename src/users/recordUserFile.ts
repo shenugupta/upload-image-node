@@ -1,4 +1,4 @@
-import { DocType, Profile } from "../enums";
+import { DocType, HttpStatus, Profile } from "../enums";
 import { HttpError } from "../errors";
 import { fileTypeFromUpload } from "./fileTypeFromUpload";
 import { resolveUser } from "./resolveUser";
@@ -15,7 +15,7 @@ function normalizeDoctype(doctype: string | undefined, profile?: string): string
     return DocType.Other;
   }
 
-  throw new HttpError(400, "doctype is required");
+  throw new HttpError(HttpStatus.BadRequest, "doctype is required");
 }
 
 export async function recordUserFile(
@@ -32,7 +32,7 @@ export async function recordUserFile(
   const user = await resolveUser(users, { userId, email });
 
   if (!fileurl) {
-    throw new HttpError(400, "fileurl is required");
+    throw new HttpError(HttpStatus.BadRequest, "fileurl is required");
   }
 
   const trimmedDoctype = normalizeDoctype(doctype, process.env.PROFILE);

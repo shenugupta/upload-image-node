@@ -1,6 +1,6 @@
 import path from "path";
 import { HttpError } from "../errors";
-import { FileExtension, FileType, MimeType } from "../enums";
+import { FileExtension, FileType, HttpStatus, MimeType } from "../enums";
 import type { FileUploadMeta } from "../types";
 
 export const ALLOWED_FILE_TYPES: FileType[] = [
@@ -45,5 +45,5 @@ export function fileTypeFromUpload({
     return FileType.Video;
   }
 
-  throw new HttpError(400, `filetype must be ${ALLOWED_FILE_TYPES.join(", ")}`);
+  throw new HttpError(HttpStatus.BadRequest, `filetype must be ${ALLOWED_FILE_TYPES.join(", ")}`);
 }

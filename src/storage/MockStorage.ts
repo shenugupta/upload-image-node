@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { FileExtension, HttpMethod, MimeType, Profile } from "../enums";
+import { FileExtension, HttpMethod, HttpStatus, MimeType, Profile } from "../enums";
 import { StoragePort } from "../ports/StoragePort";
 import { HttpError, NotFoundError } from "../errors";
 import type { CreateUploadUrlInput, ListedObject, StorageKeyInput, UploadUrlResult, VideoResult } from "../types";
@@ -98,17 +98,17 @@ export class MockStorage extends StoragePort {
     method
   }: MockSignedRequest): void {
     if (!expires || !signature || !method) {
-      throw new HttpError(400, "Invalid URL");
+      throw new HttpError(HttpStatus.BadRequest, "Invalid URL");
     }
 
     if (Math.floor(Date.now() / 1000) > Number(expires)) {
-      throw new HttpError(403, "URL expired");
+      throw new HttpError(HttpStatus.Forbidden, "URL expired");
     }
 
     const expected = this.sign(`${method}:${key}:${contentType}:${expires}`);
 
     if (signature !== expected) {
-      throw new HttpError(403, "Invalid signature");
+      throw new HttpError(HttpStatus.Forbidden, "Invalid signature");
     }
   }
 

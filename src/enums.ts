@@ -98,6 +98,22 @@ export enum HttpMethod {
   Head = "HEAD"
 }
 
+export enum HttpStatus {
+  Created = 201,
+  BadRequest = 400,
+  Unauthorized = 401,
+  Forbidden = 403,
+  NotFound = 404,
+  Conflict = 409,
+  InternalServerError = 500
+}
+
+export enum PostgresErrorCode {
+  ForeignKeyViolation = "23503",
+  UniqueViolation = "23505",
+  CheckViolation = "23514"
+}
+
 export enum AwsPlaceholderCredential {
   Test = "test"
 }

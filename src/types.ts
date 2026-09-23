@@ -1,6 +1,6 @@
 import type { Pool } from "pg";
 import type { StoragePort } from "./ports/StoragePort";
-import { FileType, Profile } from "./enums";
+import { FileType, HttpStatus, PostgresErrorCode, Profile } from "./enums";
 
 export { FileType, Profile };
 
@@ -143,10 +143,10 @@ export type QueryParamValue =
 export type ErrorLike = {
   name?: string;
   message?: string;
-  code?: string | number;
-  status?: number;
+  code?: PostgresErrorCode | string | number;
+  status?: HttpStatus;
   $metadata?: {
-    httpStatusCode?: number;
+    httpStatusCode?: HttpStatus;
   };
   errorMessage?: string;
   errorType?: string;
